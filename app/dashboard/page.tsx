@@ -3,9 +3,10 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Sidebar from '@/components/Sidebar';
 import { api, AlertStats, Alert } from '@/lib/api';
+import { Bell, Bug, Lightbulb, ClipboardList, AlertTriangle, CheckCircle2, RefreshCw, ChevronRight, Check } from 'lucide-react';
 
 const SEVERITY_LABEL: Record<string, string> = { critical: 'Crítico', high: 'Alto', medium: 'Médio', low: 'Baixo' };
-const TYPE_LABEL: Record<string, string> = { bug: '🐛 Bug', complaint: '😤 Reclamação', suggestion: '💡 Sugestão', request: '📋 Solicitação' };
+const TYPE_LABEL: Record<string, string> = { bug: 'Bug', complaint: 'Reclamação', suggestion: 'Sugestão', request: 'Solicitação' };
 const TYPE_BADGE: Record<string, string> = { bug: 'badge-red', complaint: 'badge-orange', suggestion: 'badge-blue', request: 'badge-purple' };
 
 export default function DashboardPage() {
@@ -52,7 +53,9 @@ export default function DashboardPage() {
             <h1 style={{ fontSize: '18px', fontWeight: '600' }}>Dashboard</h1>
             <p className="text-muted text-sm">Visão geral dos seus projetos e alertas</p>
           </div>
-          <button className="btn btn-ghost btn-sm" onClick={loadData}>↻ Atualizar</button>
+          <button className="btn btn-ghost btn-sm" onClick={loadData} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <RefreshCw size={14} /> Atualizar
+          </button>
         </div>
 
         <div className="page-content">
@@ -60,27 +63,26 @@ export default function DashboardPage() {
             <div className="empty-state"><div className="spinner" style={{ width: 36, height: 36 }} /></div>
           ) : (
             <>
-              {/* Cards de estatísticas */}
               <div className="grid-4 mb-6">
                 <div className="stat-card">
-                  <div className="stat-icon" style={{ background: 'var(--primary)' }}>🔔</div>
+                  <div className="stat-icon" style={{ background: 'var(--primary)' }}><Bell size={18} color="#fff" /></div>
                   <div className="stat-value" style={{ color: Number(stats?.open_alerts) > 0 ? 'var(--red)' : 'var(--primary)' }}>
                     {stats?.open_alerts || 0}
                   </div>
                   <div className="stat-label">Alertas abertos</div>
                 </div>
                 <div className="stat-card">
-                  <div className="stat-icon" style={{ background: 'var(--red)' }}>🐛</div>
+                  <div className="stat-icon" style={{ background: 'var(--red)' }}><Bug size={18} color="#fff" /></div>
                   <div className="stat-value">{stats?.open_bugs || 0}</div>
                   <div className="stat-label">Bugs relatados</div>
                 </div>
                 <div className="stat-card">
-                  <div className="stat-icon" style={{ background: 'var(--orange)' }}>💡</div>
+                  <div className="stat-icon" style={{ background: 'var(--orange)' }}><Lightbulb size={18} color="#fff" /></div>
                   <div className="stat-value">{stats?.open_suggestions || 0}</div>
                   <div className="stat-label">Sugestões</div>
                 </div>
                 <div className="stat-card">
-                  <div className="stat-icon" style={{ background: 'var(--secondary)' }}>📋</div>
+                  <div className="stat-icon" style={{ background: 'var(--secondary)' }}><ClipboardList size={18} color="#fff" /></div>
                   <div className="stat-value">{stats?.pending_specs || 0}</div>
                   <div className="stat-label">Specs pendentes</div>
                 </div>
@@ -88,7 +90,7 @@ export default function DashboardPage() {
 
               {Number(stats?.critical_alerts) > 0 && (
                 <div className="notice notice-error" style={{ marginBottom: 20, display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <span style={{ fontSize: 20 }}>🚨</span>
+                  <AlertTriangle size={18} />
                   <div>
                     <strong>{stats?.critical_alerts} alerta(s) CRÍTICO(S)</strong>
                     <span style={{ marginLeft: 8, opacity: 0.8 }}>Requer atenção imediata</span>
@@ -96,15 +98,16 @@ export default function DashboardPage() {
                 </div>
               )}
 
-              {/* Alertas recentes */}
               <div className="flex justify-between items-center mb-4">
                 <h2 style={{ fontSize: '16px', fontWeight: '600' }}>Alertas recentes</h2>
-                <button className="btn btn-ghost btn-sm" onClick={() => router.push('/especificacoes')}>Ver especificações →</button>
+                <button className="btn btn-ghost btn-sm" onClick={() => router.push('/especificacoes')} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                  Ver especificações <ChevronRight size={14} />
+                </button>
               </div>
 
               {alerts.length === 0 ? (
                 <div className="empty-state card">
-                  <span style={{ fontSize: 40 }}>✅</span>
+                  <CheckCircle2 size={40} color="var(--primary)" />
                   <p>Nenhum alerta aberto. Tudo em ordem!</p>
                 </div>
               ) : (
@@ -128,7 +131,9 @@ export default function DashboardPage() {
                         </div>
                         {alert.spec_id && (
                           <div style={{ marginTop: 6 }}>
-                            <span className="badge badge-purple" style={{ fontSize: 11 }}>📋 Spec gerada</span>
+                            <span className="badge badge-purple" style={{ fontSize: 11, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                              <ClipboardList size={10} /> Spec gerada
+                            </span>
                           </div>
                         )}
                       </div>
@@ -136,7 +141,9 @@ export default function DashboardPage() {
                         <span className={`badge badge-${alert.severity === 'critical' ? 'red' : alert.severity === 'high' ? 'orange' : alert.severity === 'medium' ? 'yellow' : 'green'}`}>
                           {SEVERITY_LABEL[alert.severity]}
                         </span>
-                        <button className="btn btn-ghost btn-sm" onClick={() => resolve(alert.id)}>✓ Resolver</button>
+                        <button className="btn btn-ghost btn-sm" onClick={() => resolve(alert.id)} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                          <Check size={13} /> Resolver
+                        </button>
                       </div>
                     </div>
                   ))}

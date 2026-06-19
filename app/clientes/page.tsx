@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Sidebar from '@/components/Sidebar';
 import { api, Client, ClientSystem, Chat, MonitoredChat } from '@/lib/api';
+import { Users, User, Monitor, Plus, Pencil, Trash2, Globe, Package, MessageCircle, Check, X } from 'lucide-react';
 
 const COLORS = ['#16a34a', '#14532d', '#f97316', '#3B82F6', '#eab308', '#ef4444', '#a855f7', '#ec4899'];
 
@@ -43,10 +44,7 @@ export default function ClientesPage() {
 
   async function selectClient(client: Client) {
     setSelected(client);
-    const [s, mc] = await Promise.all([
-      api.listSystems(client.id),
-      api.listClientChats(client.id),
-    ]);
+    const [s, mc] = await Promise.all([api.listSystems(client.id), api.listClientChats(client.id)]);
     setSystems(s);
     setMonitoredChats(mc);
   }
@@ -70,11 +68,7 @@ export default function ClientesPage() {
     await api.deleteClient(id);
     const remaining = clients.filter(c => c.id !== id);
     setClients(remaining);
-    if (selected?.id === id) {
-      setSelected(remaining[0] || null);
-      setSystems([]);
-      setMonitoredChats([]);
-    }
+    if (selected?.id === id) { setSelected(remaining[0] || null); setSystems([]); setMonitoredChats([]); }
   }
 
   async function saveSystem() {
@@ -104,13 +98,7 @@ export default function ClientesPage() {
 
   function openEditSystem(system: ClientSystem) {
     setEditingSystem(system);
-    setSystemForm({
-      name: system.name,
-      description: system.description,
-      tech_stack: system.tech_stack || '',
-      repository_url: system.repository_url || '',
-      production_url: system.production_url || '',
-    });
+    setSystemForm({ name: system.name, description: system.description, tech_stack: system.tech_stack || '', repository_url: system.repository_url || '', production_url: system.production_url || '' });
     setShowSystemModal(true);
   }
 
@@ -135,11 +123,7 @@ export default function ClientesPage() {
         await api.removeChatFromClient(selected.id, existing.id);
         setMonitoredChats(prev => prev.filter(mc => mc.id !== existing.id));
       } else {
-        const mc = await api.addChatToClient(selected.id, {
-          chat_id: chat.id,
-          chat_name: chat.name,
-          chat_type: chat.type,
-        });
+        const mc = await api.addChatToClient(selected.id, { chat_id: chat.id, chat_name: chat.name, chat_type: chat.type });
         setMonitoredChats(prev => [...prev, mc]);
       }
     } finally {
@@ -147,9 +131,7 @@ export default function ClientesPage() {
     }
   }
 
-  const filteredChats = allChats.filter(c =>
-    c.name.toLowerCase().includes(chatSearch.toLowerCase())
-  );
+  const filteredChats = allChats.filter(c => c.name.toLowerCase().includes(chatSearch.toLowerCase()));
   const monitoredIds = new Set(monitoredChats.map(mc => mc.chat_id));
 
   return (
@@ -161,16 +143,18 @@ export default function ClientesPage() {
             <h1 style={{ fontSize: '18px', fontWeight: '600' }}>Clientes & Sistemas</h1>
             <p className="text-muted text-sm">Gerencie clientes, sistemas e grupos monitorados por cliente</p>
           </div>
-          <button className="btn btn-primary" onClick={() => setShowClientModal(true)}>+ Novo cliente</button>
+          <button className="btn btn-primary" onClick={() => setShowClientModal(true)} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <Plus size={15} /> Novo cliente
+          </button>
         </div>
 
         <div className="split-view" style={{ display: 'flex', height: 'calc(100vh - 65px)', overflow: 'hidden' }}>
-          {/* Lista lateral de clientes */}
+          {/* Lista lateral */}
           <div className="split-list" style={{ width: 260, borderRight: '2.5px solid var(--border)', padding: 16, overflowY: 'auto' }}>
             <div className="text-xs text-muted font-semibold mb-3" style={{ textTransform: 'uppercase', letterSpacing: '0.08em' }}>Seus clientes</div>
             {loading ? <div className="spinner" /> : clients.length === 0 ? (
               <div className="empty-state" style={{ padding: '30px 0' }}>
-                <span style={{ fontSize: 28 }}>👥</span>
+                <Users size={28} color="var(--text2)" />
                 <p style={{ fontSize: 12, textAlign: 'center' }}>Nenhum cliente ainda.<br />Clique em "+ Novo cliente"</p>
               </div>
             ) : (
@@ -179,12 +163,7 @@ export default function ClientesPage() {
                   <div
                     key={client.id}
                     onClick={() => selectClient(client)}
-                    style={{
-                      padding: '10px 12px', borderRadius: 8, cursor: 'pointer',
-                      background: selected?.id === client.id ? 'var(--bg3)' : 'transparent',
-                      border: `1px solid ${selected?.id === client.id ? 'var(--primary)' : 'transparent'}`,
-                      transition: 'all 0.15s',
-                    }}
+                    style={{ padding: '10px 12px', borderRadius: 8, cursor: 'pointer', background: selected?.id === client.id ? 'var(--bg3)' : 'transparent', border: `1px solid ${selected?.id === client.id ? 'var(--primary)' : 'transparent'}`, transition: 'all 0.15s' }}
                   >
                     <div className="flex items-center gap-2">
                       <div style={{ width: 10, height: 10, borderRadius: '50%', background: client.color, flexShrink: 0 }} />
@@ -202,11 +181,11 @@ export default function ClientesPage() {
             )}
           </div>
 
-          {/* Detalhe do cliente */}
+          {/* Detalhe */}
           <div className="split-detail" style={{ flex: 1, overflowY: 'auto', padding: 24 }}>
             {!selected ? (
               <div className="empty-state">
-                <span style={{ fontSize: 48 }}>👈</span>
+                <Users size={48} color="var(--text2)" />
                 <p>Selecione um cliente para ver seus dados</p>
               </div>
             ) : (
@@ -219,24 +198,26 @@ export default function ClientesPage() {
                       <span className="badge badge-red">{selected.open_alerts} alertas abertos</span>
                     )}
                   </div>
-                  <button className="btn btn-ghost btn-sm" onClick={() => deleteClient(selected.id)}>🗑 Remover cliente</button>
+                  <button className="btn btn-ghost btn-sm" onClick={() => deleteClient(selected.id)} style={{ display: 'flex', alignItems: 'center', gap: 5, color: 'var(--red)' }}>
+                    <Trash2 size={13} /> Remover cliente
+                  </button>
                 </div>
 
-                {selected.description && (
-                  <p className="text-muted text-sm mb-5">{selected.description}</p>
-                )}
+                {selected.description && <p className="text-muted text-sm mb-5">{selected.description}</p>}
 
-                {/* ===== GRUPOS MONITORADOS ===== */}
+                {/* Grupos monitorados */}
                 <div className="flex justify-between items-center mb-3">
                   <div className="text-xs text-muted font-semibold" style={{ textTransform: 'uppercase', letterSpacing: '0.08em' }}>
                     Grupos & conversas monitorados ({monitoredChats.length})
                   </div>
-                  <button className="btn btn-primary btn-sm" onClick={openChatsModal}>+ Gerenciar grupos</button>
+                  <button className="btn btn-primary btn-sm" onClick={openChatsModal} style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                    <Plus size={13} /> Gerenciar grupos
+                  </button>
                 </div>
 
                 {monitoredChats.length === 0 ? (
                   <div className="card mb-5" style={{ textAlign: 'center', padding: '20px 16px' }}>
-                    <div style={{ fontSize: 28, marginBottom: 6 }}>💬</div>
+                    <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 6 }}><MessageCircle size={28} color="var(--text2)" /></div>
                     <div className="font-semibold text-sm mb-1">Nenhum grupo monitorado</div>
                     <div className="text-xs text-muted mb-3">Vincule grupos do WhatsApp para que a IA monitore as mensagens deste cliente</div>
                     <button className="btn btn-primary btn-sm" onClick={openChatsModal}>Selecionar grupos</button>
@@ -244,24 +225,17 @@ export default function ClientesPage() {
                 ) : (
                   <div className="card mb-5" style={{ padding: 0, overflow: 'hidden' }}>
                     {monitoredChats.map((mc, i) => (
-                      <div key={mc.id} style={{
-                        display: 'flex', alignItems: 'center', gap: 12, padding: '10px 16px',
-                        borderBottom: i < monitoredChats.length - 1 ? '1px solid var(--border)' : 'none',
-                      }}>
-                        <span style={{ fontSize: 18 }}>{mc.chat_type === 'group' ? '👥' : '👤'}</span>
+                      <div key={mc.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 16px', borderBottom: i < monitoredChats.length - 1 ? '1px solid var(--border)' : 'none' }}>
+                        {mc.chat_type === 'group' ? <Users size={18} color="var(--text2)" /> : <User size={18} color="var(--text2)" />}
                         <div style={{ flex: 1 }}>
                           <div className="font-semibold text-sm">{mc.chat_name}</div>
                           <div className="text-xs text-muted">{mc.chat_type === 'group' ? 'Grupo' : 'Conversa individual'}</div>
                         </div>
                         <span className="badge badge-green" style={{ fontSize: 10 }}>● Monitorando</span>
-                        <button
-                          className="btn btn-ghost btn-sm"
-                          style={{ color: 'var(--red)', fontSize: 12 }}
-                          onClick={async () => {
-                            await api.removeChatFromClient(selected.id, mc.id);
-                            setMonitoredChats(prev => prev.filter(c => c.id !== mc.id));
-                          }}
-                        >
+                        <button className="btn btn-ghost btn-sm" style={{ color: 'var(--red)', fontSize: 12 }} onClick={async () => {
+                          await api.removeChatFromClient(selected.id, mc.id);
+                          setMonitoredChats(prev => prev.filter(c => c.id !== mc.id));
+                        }}>
                           Remover
                         </button>
                       </div>
@@ -269,22 +243,24 @@ export default function ClientesPage() {
                   </div>
                 )}
 
-                {/* ===== SISTEMAS ===== */}
+                {/* Sistemas */}
                 <div className="flex justify-between items-center mb-3">
                   <div className="text-xs text-muted font-semibold" style={{ textTransform: 'uppercase', letterSpacing: '0.08em' }}>
                     Sistemas cadastrados ({systems.length})
                   </div>
-                  <button className="btn btn-primary btn-sm" onClick={() => { setEditingSystem(null); setSystemForm({ name: '', description: '', tech_stack: '', repository_url: '', production_url: '' }); setShowSystemModal(true); }}>
-                    + Adicionar sistema
+                  <button className="btn btn-primary btn-sm" onClick={() => { setEditingSystem(null); setSystemForm({ name: '', description: '', tech_stack: '', repository_url: '', production_url: '' }); setShowSystemModal(true); }} style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                    <Plus size={13} /> Adicionar sistema
                   </button>
                 </div>
 
                 {systems.length === 0 ? (
                   <div className="empty-state card">
-                    <span style={{ fontSize: 36 }}>🖥️</span>
+                    <Monitor size={36} color="var(--text2)" />
                     <p>Nenhum sistema cadastrado para este cliente.</p>
                     <p className="text-sm">Adicione os sistemas para que a IA gere especificações mais precisas.</p>
-                    <button className="btn btn-primary" onClick={() => { setEditingSystem(null); setShowSystemModal(true); }}>+ Adicionar sistema</button>
+                    <button className="btn btn-primary" onClick={() => { setEditingSystem(null); setShowSystemModal(true); }} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <Plus size={15} /> Adicionar sistema
+                    </button>
                   </div>
                 ) : (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
@@ -292,30 +268,36 @@ export default function ClientesPage() {
                       <div key={system.id} className="card">
                         <div className="flex justify-between items-center mb-2">
                           <div className="flex items-center gap-2">
-                            <span style={{ fontSize: 18 }}>🖥️</span>
+                            <Monitor size={18} color="var(--text2)" />
                             <span className="font-semibold">{system.name}</span>
                             {!system.active && <span className="badge badge-gray">Inativo</span>}
                           </div>
                           <div className="flex gap-2">
-                            <button className="btn btn-ghost btn-sm" onClick={() => openEditSystem(system)}>✏️ Editar</button>
-                            <button className="btn btn-ghost btn-sm" onClick={() => deleteSystem(system.id)}>🗑</button>
+                            <button className="btn btn-ghost btn-sm" onClick={() => openEditSystem(system)} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                              <Pencil size={13} /> Editar
+                            </button>
+                            <button className="btn btn-ghost btn-sm" onClick={() => deleteSystem(system.id)} style={{ display: 'flex', alignItems: 'center', gap: 4, color: 'var(--red)' }}>
+                              <Trash2 size={13} />
+                            </button>
                           </div>
                         </div>
                         {system.tech_stack && (
                           <div className="flex gap-2 mb-2" style={{ flexWrap: 'wrap' }}>
-                            {system.tech_stack.split(',').map(t => (
-                              <span key={t} className="badge badge-blue">{t.trim()}</span>
-                            ))}
+                            {system.tech_stack.split(',').map(t => <span key={t} className="badge badge-blue">{t.trim()}</span>)}
                           </div>
                         )}
                         <p className="text-sm text-muted" style={{ lineHeight: 1.7 }}>{system.description}</p>
                         {(system.production_url || system.repository_url) && (
                           <div className="flex gap-3 mt-3">
                             {system.production_url && (
-                              <a href={system.production_url} target="_blank" rel="noreferrer" className="btn btn-ghost btn-sm">🌐 Produção</a>
+                              <a href={system.production_url} target="_blank" rel="noreferrer" className="btn btn-ghost btn-sm" style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                                <Globe size={13} /> Produção
+                              </a>
                             )}
                             {system.repository_url && (
-                              <a href={system.repository_url} target="_blank" rel="noreferrer" className="btn btn-ghost btn-sm">📦 Repositório</a>
+                              <a href={system.repository_url} target="_blank" rel="noreferrer" className="btn btn-ghost btn-sm" style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                                <Package size={13} /> Repositório
+                              </a>
                             )}
                           </div>
                         )}
@@ -370,12 +352,7 @@ export default function ClientesPage() {
               </div>
               <div className="form-group">
                 <label className="label">Descrição completa *</label>
-                <textarea
-                  style={{ minHeight: 120 }}
-                  value={systemForm.description}
-                  onChange={e => setSystemForm(f => ({ ...f, description: e.target.value }))}
-                  placeholder="Descreva o que o sistema faz, funcionalidades, módulos, limitações... Quanto mais detalhado, mais precisa a especificação da IA."
-                />
+                <textarea style={{ minHeight: 120 }} value={systemForm.description} onChange={e => setSystemForm(f => ({ ...f, description: e.target.value }))} placeholder="Descreva o que o sistema faz, funcionalidades, módulos..." />
                 <span className="text-xs text-muted">Usada pela IA para gerar especificações técnicas precisas</span>
               </div>
               <div className="form-group">
@@ -404,10 +381,10 @@ export default function ClientesPage() {
         {showChatsModal && (
           <div className="modal-overlay" onClick={() => setShowChatsModal(false)}>
             <div className="modal" style={{ maxWidth: 520 }} onClick={e => e.stopPropagation()}>
-              <div className="modal-title">💬 Grupos — {selected?.name}</div>
-              <p className="text-sm text-muted mb-4">
-                Marque os grupos e conversas do WhatsApp que a IA deve monitorar para este cliente.
-              </p>
+              <div className="modal-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <MessageCircle size={18} /> Grupos — {selected?.name}
+              </div>
+              <p className="text-sm text-muted mb-4">Marque os grupos e conversas que a IA deve monitorar para este cliente.</p>
               <div className="form-group" style={{ marginBottom: 12 }}>
                 <input placeholder="Buscar por nome..." value={chatSearch} onChange={e => setChatSearch(e.target.value)} autoFocus />
               </div>
@@ -417,12 +394,8 @@ export default function ClientesPage() {
                 </div>
               ) : filteredChats.length === 0 ? (
                 <div className="empty-state" style={{ padding: 24 }}>
-                  <span style={{ fontSize: 28 }}>💬</span>
-                  <p className="text-sm">
-                    {allChats.length === 0
-                      ? 'Nenhuma conversa encontrada. Certifique-se que o WhatsApp está conectado.'
-                      : 'Nenhuma conversa encontrada com esse nome.'}
-                  </p>
+                  <MessageCircle size={28} color="var(--text2)" />
+                  <p className="text-sm">{allChats.length === 0 ? 'Nenhuma conversa encontrada. Certifique-se que o WhatsApp está conectado.' : 'Nenhuma conversa encontrada com esse nome.'}</p>
                 </div>
               ) : (
                 <div style={{ maxHeight: 380, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 4 }}>
@@ -431,8 +404,9 @@ export default function ClientesPage() {
                     if (chats.length === 0) return null;
                     return (
                       <div key={type}>
-                        <div className="text-xs text-muted font-semibold mb-2 mt-3" style={{ textTransform: 'uppercase', letterSpacing: '0.06em', paddingLeft: 4 }}>
-                          {type === 'group' ? '👥 Grupos' : '👤 Individuais'}
+                        <div className="text-xs text-muted font-semibold mb-2 mt-3" style={{ textTransform: 'uppercase', letterSpacing: '0.06em', paddingLeft: 4, display: 'flex', alignItems: 'center', gap: 5 }}>
+                          {type === 'group' ? <Users size={12} /> : <User size={12} />}
+                          {type === 'group' ? 'Grupos' : 'Individuais'}
                         </div>
                         {chats.map(chat => {
                           const isMonitored = monitoredIds.has(chat.id);
@@ -441,31 +415,17 @@ export default function ClientesPage() {
                             <div
                               key={chat.id}
                               onClick={() => !isToggling && toggleChat(chat)}
-                              style={{
-                                display: 'flex', alignItems: 'center', gap: 12,
-                                padding: '10px 12px', borderRadius: 8, cursor: 'pointer',
-                                background: isMonitored ? 'rgba(34,197,94,0.08)' : 'var(--bg3)',
-                                border: `1px solid ${isMonitored ? 'rgba(34,197,94,0.3)' : 'transparent'}`,
-                                marginBottom: 4, transition: 'all 0.15s',
-                                opacity: isToggling ? 0.6 : 1,
-                              }}
+                              style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', borderRadius: 8, cursor: 'pointer', background: isMonitored ? 'rgba(34,197,94,0.08)' : 'var(--bg3)', border: `1px solid ${isMonitored ? 'rgba(34,197,94,0.3)' : 'transparent'}`, marginBottom: 4, transition: 'all 0.15s', opacity: isToggling ? 0.6 : 1 }}
                             >
                               {isToggling ? (
                                 <div className="spinner" style={{ width: 16, height: 16, flexShrink: 0 }} />
                               ) : (
-                                <div style={{
-                                  width: 18, height: 18, borderRadius: 4, flexShrink: 0,
-                                  border: `2px solid ${isMonitored ? 'var(--green)' : 'var(--border)'}`,
-                                  background: isMonitored ? 'var(--green)' : 'transparent',
-                                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                }}>
-                                  {isMonitored && <span style={{ color: '#fff', fontSize: 11, fontWeight: 700 }}>✓</span>}
+                                <div style={{ width: 18, height: 18, borderRadius: 4, flexShrink: 0, border: `2px solid ${isMonitored ? 'var(--green)' : 'var(--border)'}`, background: isMonitored ? 'var(--green)' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                  {isMonitored && <Check size={11} color="#fff" strokeWidth={3} />}
                                 </div>
                               )}
                               <div style={{ flex: 1, minWidth: 0 }}>
-                                <div className="font-semibold text-sm" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                  {chat.name}
-                                </div>
+                                <div className="font-semibold text-sm" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{chat.name}</div>
                               </div>
                               {isMonitored && <span className="badge badge-green" style={{ fontSize: 10 }}>Ativo</span>}
                             </div>

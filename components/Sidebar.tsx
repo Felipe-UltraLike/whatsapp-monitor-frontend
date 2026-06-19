@@ -1,15 +1,19 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
+import {
+  LayoutDashboard, Smartphone, Users, Eye, Bell, ClipboardList,
+  Search, Menu, X, LogOut, MessageSquare,
+} from 'lucide-react';
 
 const NAV = [
-  { label: 'Dashboard', href: '/dashboard', icon: '📊' },
-  { label: 'WhatsApp', href: '/whatsapp', icon: '📱' },
-  { label: 'Clientes', href: '/clientes', icon: '👥' },
-  { label: 'Monitoramento', href: '/monitoramento', icon: '👁️' },
-  { label: 'Lembretes', href: '/lembretes', icon: '⏰' },
-  { label: 'Especificações', href: '/especificacoes', icon: '📋' },
-  { label: 'Logs', href: '/logs', icon: '🔍' },
+  { label: 'Dashboard',      href: '/dashboard',      Icon: LayoutDashboard },
+  { label: 'WhatsApp',       href: '/whatsapp',       Icon: Smartphone },
+  { label: 'Clientes',       href: '/clientes',       Icon: Users },
+  { label: 'Monitoramento',  href: '/monitoramento',  Icon: Eye },
+  { label: 'Lembretes',      href: '/lembretes',      Icon: Bell },
+  { label: 'Especificações', href: '/especificacoes', Icon: ClipboardList },
+  { label: 'Logs',           href: '/logs',           Icon: Search },
 ];
 
 export default function Sidebar({ alertCount = 0 }: { alertCount?: number }) {
@@ -17,7 +21,6 @@ export default function Sidebar({ alertCount = 0 }: { alertCount?: number }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
 
-  // Fecha o menu ao trocar de rota
   useEffect(() => { setOpen(false); }, [pathname]);
 
   function logout() {
@@ -37,37 +40,35 @@ export default function Sidebar({ alertCount = 0 }: { alertCount?: number }) {
 
   return (
     <>
-      {/* Header mobile com hambúrguer */}
       <div className="mobile-header">
         <div className="logo">
-          <span>📲</span>
+          <MessageSquare size={18} />
           <span>WA Monitor</span>
         </div>
         <button className="menu-toggle" onClick={() => setOpen(o => !o)} aria-label="Menu">
-          {open ? '✕' : '☰'}
+          {open ? <X size={20} /> : <Menu size={20} />}
         </button>
       </div>
 
-      {/* Overlay escuro no mobile */}
       <div className={`mobile-overlay ${open ? 'show' : ''}`} onClick={() => setOpen(false)} />
 
       <aside className={`sidebar ${open ? 'open' : ''}`}>
         <div className="sidebar-logo">
-          <span>📲</span>
+          <MessageSquare size={18} />
           <span>WA Monitor</span>
         </div>
 
         <nav style={{ flex: 1 }}>
           <div className="sidebar-section">Menu</div>
-          {NAV.map(item => (
+          {NAV.map(({ href, label, Icon }) => (
             <button
-              key={item.href}
-              className={`sidebar-item ${pathname === item.href ? 'active' : ''}`}
-              onClick={() => navigate(item.href)}
+              key={href}
+              className={`sidebar-item ${pathname === href ? 'active' : ''}`}
+              onClick={() => navigate(href)}
             >
-              <span>{item.icon}</span>
-              <span>{item.label}</span>
-              {item.href === '/dashboard' && alertCount > 0 && (
+              <Icon size={16} />
+              <span>{label}</span>
+              {href === '/dashboard' && alertCount > 0 && (
                 <span className="badge badge-red" style={{ fontSize: '11px', padding: '1px 7px' }}>{alertCount}</span>
               )}
             </button>
@@ -78,8 +79,8 @@ export default function Sidebar({ alertCount = 0 }: { alertCount?: number }) {
         <div style={{ padding: '0 10px' }}>
           <div style={{ fontSize: '13px', fontWeight: 700, marginBottom: '2px', color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user.name || 'Usuário'}</div>
           <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.6)', marginBottom: '12px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user.email}</div>
-          <button className="btn btn-sm" onClick={logout} style={{ width: '100%' }}>
-            Sair
+          <button className="btn btn-sm" onClick={logout} style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+            <LogOut size={13} /> Sair
           </button>
         </div>
       </aside>

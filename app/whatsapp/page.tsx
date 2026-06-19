@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Sidebar from '@/components/Sidebar';
 import { api, WhatsAppStatus, User, Chat } from '@/lib/api';
+import { Smartphone, Users, User, RefreshCw, Link, AlertTriangle, CheckCircle2, X, ArrowLeftRight, Plus, Clock, BarChart2, MessageCircle } from 'lucide-react';
 
 function maskPhone(value: string): string {
   const digits = value.replace(/\D/g, '').slice(0, 13);
@@ -22,13 +23,11 @@ export default function WhatsAppPage() {
   const [showModal, setShowModal] = useState(false);
   const [instanceName, setInstanceName] = useState('WA Monitor');
 
-  // Configurações do usuário
   const [user, setUser] = useState<User | null>(null);
   const [alertNumber, setAlertNumber] = useState('');
   const [savingNumbers, setSavingNumbers] = useState(false);
   const [savedNumbers, setSavedNumbers] = useState(false);
 
-  // Grupo do sistema
   const [systemGroup, setSystemGroup] = useState<{ id: string; name: string } | null>(null);
   const [showGroupModal, setShowGroupModal] = useState(false);
   const [groupChats, setGroupChats] = useState<Chat[]>([]);
@@ -36,7 +35,6 @@ export default function WhatsAppPage() {
   const [groupSearch, setGroupSearch] = useState('');
   const [savingGroup, setSavingGroup] = useState(false);
 
-  // Webhook
   const [webhookUrl, setWebhookUrl] = useState('');
   const [webhookConfigured, setWebhookConfigured] = useState(false);
   const [configuringWebhook, setConfiguringWebhook] = useState(false);
@@ -53,20 +51,11 @@ export default function WhatsAppPage() {
 
   async function loadData() {
     try {
-      const [u, wh] = await Promise.all([
-        api.getMe(),
-        api.getWebhookUrl().catch(() => null),
-        checkStatus(),
-      ]);
+      const [u, wh] = await Promise.all([api.getMe(), api.getWebhookUrl().catch(() => null), checkStatus()]);
       setUser(u);
       setAlertNumber(u.whatsapp_number || '');
-      if (u.system_group_id) {
-        setSystemGroup({ id: u.system_group_id, name: u.system_group_name || u.system_group_id });
-      }
-      if (wh) {
-        setWebhookUrl(wh.webhook_url);
-        setWebhookConfigured(wh.backend_url_configured);
-      }
+      if (u.system_group_id) setSystemGroup({ id: u.system_group_id, name: u.system_group_name || u.system_group_id });
+      if (wh) { setWebhookUrl(wh.webhook_url); setWebhookConfigured(wh.backend_url_configured); }
     } finally {
       setLoading(false);
     }
@@ -204,9 +193,7 @@ export default function WhatsAppPage() {
                 </div>
               </div>
 
-              {error && (
-                <div className="notice notice-error" style={{ marginBottom: 16 }}>{error}</div>
-              )}
+              {error && <div className="notice notice-error" style={{ marginBottom: 16 }}>{error}</div>}
 
               {(isPending || qrData) && !isConnected && (
                 <div className="card mb-4">
@@ -233,43 +220,48 @@ export default function WhatsAppPage() {
 
               <div className="flex gap-3 mb-6">
                 {!isConnected && (
-                  <button className="btn btn-primary" onClick={() => setShowModal(true)} disabled={connecting}>
-                    {connecting ? <><span className="spinner" /> Conectando...</> : '📱 Conectar WhatsApp'}
+                  <button className="btn btn-primary" onClick={() => setShowModal(true)} disabled={connecting} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    {connecting ? <><span className="spinner" /> Conectando...</> : <><Smartphone size={15} /> Conectar WhatsApp</>}
                   </button>
                 )}
                 {isConnected && <button className="btn btn-danger" onClick={disconnect}>Desconectar</button>}
-                <button className="btn btn-ghost" onClick={checkStatus}>↻ Verificar status</button>
+                <button className="btn btn-ghost" onClick={checkStatus} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <RefreshCw size={14} /> Verificar status
+                </button>
               </div>
 
               <div className="divider" />
 
-              {/* Grupo de comunicação do sistema */}
+              {/* Grupo de comunicação */}
               <div className="card mb-4">
                 <h3 className="font-semibold mb-1">Grupo de comunicação do sistema</h3>
                 <p className="text-sm text-muted mb-4">
-                  Crie um grupo no WhatsApp (ex: <strong>"WA Monitor"</strong>) e selecione aqui. A IA responderá nesse grupo — você pode criar lembretes, consultar alertas e pedir informações diretamente pelo WhatsApp.
+                  Crie um grupo no WhatsApp (ex: <strong>&ldquo;WA Monitor&rdquo;</strong>) e selecione aqui. A IA responderá nesse grupo — crie lembretes, consulte alertas e peça informações diretamente pelo WhatsApp.
                 </p>
 
                 {systemGroup ? (
                   <div style={{ display: 'flex', alignItems: 'center', gap: 12, background: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.3)', borderRadius: 10, padding: '12px 16px', marginBottom: 12 }}>
-                    <span style={{ fontSize: 22 }}>👥</span>
+                    <Users size={22} color="var(--primary)" />
                     <div style={{ flex: 1 }}>
                       <div className="font-semibold">{systemGroup.name}</div>
                       <div className="text-xs text-muted">Grupo de comunicação ativo — a IA responde aqui</div>
                     </div>
                     <span className="badge badge-green">● Ativo</span>
                     <button className="btn btn-ghost btn-sm" onClick={openGroupModal}>Trocar</button>
-                    <button className="btn btn-ghost btn-sm" style={{ color: 'var(--red)' }} onClick={removeGroup}>✕</button>
+                    <button className="btn btn-ghost btn-sm" style={{ color: 'var(--red)', display: 'flex', alignItems: 'center' }} onClick={removeGroup}><X size={14} /></button>
                   </div>
                 ) : (
-                  <div className="notice notice-info" style={{ marginBottom: 12 }}>
-                    <div className="text-sm mb-2">⚠️ Nenhum grupo configurado. Crie um grupo no WhatsApp e selecione abaixo.</div>
-                    <div className="text-xs" style={{ opacity: 0.8 }}>Dica: crie um grupo só com você mesmo e nomeie como "WA Monitor" ou similar.</div>
+                  <div className="notice notice-info" style={{ marginBottom: 12, display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+                    <AlertTriangle size={16} style={{ flexShrink: 0, marginTop: 1 }} />
+                    <div>
+                      <div className="text-sm mb-1">Nenhum grupo configurado. Crie um grupo no WhatsApp e selecione abaixo.</div>
+                      <div className="text-xs" style={{ opacity: 0.8 }}>Dica: crie um grupo só com você mesmo e nomeie como &ldquo;WA Monitor&rdquo; ou similar.</div>
+                    </div>
                   </div>
                 )}
 
-                <button className="btn btn-primary btn-sm" onClick={openGroupModal} disabled={!isConnected}>
-                  {systemGroup ? '↔ Trocar grupo' : '+ Selecionar grupo'}
+                <button className="btn btn-primary btn-sm" onClick={openGroupModal} disabled={!isConnected} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  {systemGroup ? <><ArrowLeftRight size={13} /> Trocar grupo</> : <><Plus size={13} /> Selecionar grupo</>}
                 </button>
                 {!isConnected && <span className="text-xs text-muted ml-3">Conecte o WhatsApp primeiro</span>}
 
@@ -277,13 +269,13 @@ export default function WhatsAppPage() {
                   <div className="mt-4" style={{ background: 'var(--bg3)', borderRadius: 8, padding: '12px 14px' }}>
                     <div className="text-xs font-semibold mb-2">O que você pode fazer no grupo:</div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                      {[
-                        ['⏰', 'Criar lembretes', '"Lembrete hoje às 15h - Ligar para o cliente X"'],
-                        ['📊', 'Consultar alertas', '"Quantos alertas abertos tenho?"'],
-                        ['💬', 'Conversar com a IA', 'Tire dúvidas e peça informações do sistema'],
-                      ].map(([icon, title, desc]) => (
-                        <div key={title} className="flex gap-2">
-                          <span style={{ fontSize: 14 }}>{icon}</span>
+                      {([
+                        [Clock,        'Criar lembretes',     '"Lembrete hoje às 15h - Ligar para o cliente X"'],
+                        [BarChart2,    'Consultar alertas',   '"Quantos alertas abertos tenho?"'],
+                        [MessageCircle,'Conversar com a IA',  'Tire dúvidas e peça informações do sistema'],
+                      ] as const).map(([Icon, title, desc]) => (
+                        <div key={title} className="flex gap-2" style={{ alignItems: 'flex-start' }}>
+                          <Icon size={14} color="var(--primary)" style={{ marginTop: 2, flexShrink: 0 }} />
                           <div>
                             <span className="text-sm font-semibold">{title}</span>
                             <span className="text-xs text-muted ml-2">ex: {desc}</span>
@@ -300,23 +292,20 @@ export default function WhatsAppPage() {
               {/* Número para alertas */}
               <div className="card mb-4">
                 <h3 className="font-semibold mb-1">Número para alertas</h3>
-                <p className="text-sm text-muted mb-4">
-                  Número que receberá alertas de clientes caso o grupo de comunicação não esteja configurado.
-                </p>
+                <p className="text-sm text-muted mb-4">Número que receberá alertas caso o grupo de comunicação não esteja configurado.</p>
                 <div className="form-group">
                   <label className="label">Número WhatsApp</label>
-                  <input
-                    type="tel"
-                    placeholder="+55 (11) 99999-9999"
-                    value={maskPhone(alertNumber)}
-                    onChange={e => setAlertNumber(e.target.value.replace(/\D/g, ''))}
-                  />
+                  <input type="tel" placeholder="+55 (11) 99999-9999" value={maskPhone(alertNumber)} onChange={e => setAlertNumber(e.target.value.replace(/\D/g, ''))} />
                 </div>
                 <div className="flex items-center gap-3 mt-2">
                   <button className="btn btn-primary btn-sm" onClick={saveNumbers} disabled={savingNumbers}>
                     {savingNumbers ? 'Salvando...' : 'Salvar número'}
                   </button>
-                  {savedNumbers && <span className="badge badge-green">✓ Salvo</span>}
+                  {savedNumbers && (
+                    <span className="badge badge-green" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                      <CheckCircle2 size={11} /> Salvo
+                    </span>
+                  )}
                 </div>
               </div>
 
@@ -328,18 +317,19 @@ export default function WhatsAppPage() {
                 <p className="text-sm text-muted mb-4">Necessário para receber mensagens em tempo real. Clique sempre que reconectar o WhatsApp.</p>
 
                 {!webhookConfigured && (
-                  <div className="notice notice-warn" style={{ marginBottom: 12 }}>
-                    ⚠️ Configure <code>BACKEND_URL</code> no Render com a URL do backend antes de registrar.
+                  <div className="notice notice-warn" style={{ marginBottom: 12, display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <AlertTriangle size={14} />
+                    Configure <code>BACKEND_URL</code> no Render com a URL do backend antes de registrar.
                   </div>
                 )}
                 {webhookStatus === 'ok' && (
-                  <div className="notice notice-success" style={{ marginBottom: 12 }}>
-                    ✅ Webhook registrado com sucesso!
+                  <div className="notice notice-success" style={{ marginBottom: 12, display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <CheckCircle2 size={14} /> Webhook registrado com sucesso!
                   </div>
                 )}
                 {webhookStatus === 'error' && (
                   <div className="notice notice-error" style={{ marginBottom: 12 }}>
-                    ❌ {webhookError || 'Erro ao registrar webhook.'}
+                    {webhookError || 'Erro ao registrar webhook.'}
                   </div>
                 )}
                 {webhookUrl && (
@@ -351,8 +341,8 @@ export default function WhatsAppPage() {
                     </div>
                   </div>
                 )}
-                <button className="btn btn-primary" onClick={configureWebhook} disabled={configuringWebhook}>
-                  {configuringWebhook ? <><span className="spinner" /> Registrando...</> : '🔗 Registrar Webhook na uZapi'}
+                <button className="btn btn-primary" onClick={configureWebhook} disabled={configuringWebhook} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  {configuringWebhook ? <><span className="spinner" /> Registrando...</> : <><Link size={15} /> Registrar Webhook na uZapi</>}
                 </button>
               </div>
             </>
@@ -364,7 +354,9 @@ export default function WhatsAppPage() {
       {showModal && (
         <div className="modal-overlay" onClick={() => setShowModal(false)}>
           <div className="modal" onClick={e => e.stopPropagation()}>
-            <div className="modal-title">📱 Configurar conexão WhatsApp</div>
+            <div className="modal-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <Smartphone size={18} /> Configurar conexão WhatsApp
+            </div>
             <p className="text-sm text-muted mb-4">Escolha um nome para identificar esta conexão na uZapi.</p>
             <div className="form-group">
               <label className="label">Nome da instância *</label>
@@ -382,9 +374,11 @@ export default function WhatsAppPage() {
       {showGroupModal && (
         <div className="modal-overlay" onClick={() => setShowGroupModal(false)}>
           <div className="modal" style={{ maxWidth: 480 }} onClick={e => e.stopPropagation()}>
-            <div className="modal-title">👥 Selecionar grupo de comunicação</div>
+            <div className="modal-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <Users size={18} /> Selecionar grupo de comunicação
+            </div>
             <p className="text-sm text-muted mb-4">
-              Selecione o grupo do WhatsApp onde a IA vai responder. Crie um grupo dedicado (ex: &ldquo;WA Monitor&rdquo;) antes.
+              Selecione o grupo onde a IA vai responder. Crie um grupo dedicado (ex: &ldquo;WA Monitor&rdquo;) antes.
             </p>
             <div className="form-group" style={{ marginBottom: 12 }}>
               <input placeholder="Buscar grupo..." value={groupSearch} onChange={e => setGroupSearch(e.target.value)} autoFocus />
@@ -395,7 +389,7 @@ export default function WhatsAppPage() {
               </div>
             ) : filteredGroups.length === 0 ? (
               <div className="empty-state" style={{ padding: 24 }}>
-                <span style={{ fontSize: 32 }}>💬</span>
+                <MessageCircle size={32} color="var(--text2)" />
                 <p className="text-sm">{groupChats.length === 0 ? 'Nenhuma conversa encontrada. Certifique-se que o WhatsApp está conectado.' : 'Nenhuma conversa com esse nome.'}</p>
               </div>
             ) : (
@@ -405,8 +399,9 @@ export default function WhatsAppPage() {
                   if (chats.length === 0) return null;
                   return (
                     <div key={type}>
-                      <div className="text-xs text-muted font-semibold mb-2 mt-3" style={{ textTransform: 'uppercase', letterSpacing: '0.06em', paddingLeft: 4 }}>
-                        {type === 'group' ? '👥 Grupos' : '👤 Conversas individuais'}
+                      <div className="text-xs text-muted font-semibold mb-2 mt-3" style={{ textTransform: 'uppercase', letterSpacing: '0.06em', paddingLeft: 4, display: 'flex', alignItems: 'center', gap: 5 }}>
+                        {type === 'group' ? <Users size={12} /> : <User size={12} />}
+                        {type === 'group' ? 'Grupos' : 'Conversas individuais'}
                       </div>
                       {chats.map(chat => {
                         const isSelected = systemGroup?.id === chat.id;
@@ -414,15 +409,9 @@ export default function WhatsAppPage() {
                           <div
                             key={chat.id}
                             onClick={() => !savingGroup && selectGroup(chat)}
-                            style={{
-                              display: 'flex', alignItems: 'center', gap: 12,
-                              padding: '10px 12px', borderRadius: 8, cursor: 'pointer',
-                              background: isSelected ? 'rgba(34,197,94,0.08)' : 'var(--bg3)',
-                              border: `1px solid ${isSelected ? 'rgba(34,197,94,0.3)' : 'transparent'}`,
-                              marginBottom: 4, opacity: savingGroup ? 0.6 : 1, transition: 'all 0.15s',
-                            }}
+                            style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', borderRadius: 8, cursor: 'pointer', background: isSelected ? 'rgba(34,197,94,0.08)' : 'var(--bg3)', border: `1px solid ${isSelected ? 'rgba(34,197,94,0.3)' : 'transparent'}`, marginBottom: 4, opacity: savingGroup ? 0.6 : 1, transition: 'all 0.15s' }}
                           >
-                            <span style={{ fontSize: 18 }}>{type === 'group' ? '👥' : '👤'}</span>
+                            {type === 'group' ? <Users size={18} color="var(--text2)" /> : <User size={18} color="var(--text2)" />}
                             <div style={{ flex: 1, minWidth: 0 }}>
                               <div className="font-semibold text-sm" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{chat.name}</div>
                               <div className="text-xs text-muted">{type === 'group' ? 'Grupo' : 'Conversa individual'}</div>
