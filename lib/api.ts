@@ -43,6 +43,8 @@ export const api = {
   connectWhatsApp: (instanceName?: string) => request<{ qr: unknown; webhook_configured: boolean; session_key: string }>('/api/whatsapp/connect', { method: 'POST', body: JSON.stringify({ instance_name: instanceName }) }),
   disconnectWhatsApp: () => request('/api/whatsapp/disconnect', { method: 'POST' }),
   listChats: () => request<Chat[]>('/api/whatsapp/chats'),
+  getWebhookUrl: () => request<{ webhook_url: string; backend_url_configured: boolean }>('/api/whatsapp/webhook/url'),
+  configureWebhook: () => request<{ success: boolean; webhook_url: string }>('/api/whatsapp/webhook/configure', { method: 'POST' }),
 
   // Clients
   listClients: () => request<Client[]>('/api/clients'),

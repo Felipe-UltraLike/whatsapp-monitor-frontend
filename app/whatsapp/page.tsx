@@ -29,6 +29,12 @@ export default function WhatsAppPage() {
   const [savingNumbers, setSavingNumbers] = useState(false);
   const [savedNumbers, setSavedNumbers] = useState(false);
 
+  // Webhook
+  const [webhookUrl, setWebhookUrl] = useState('');
+  const [webhookConfigured, setWebhookConfigured] = useState(false);
+  const [configuringWebhook, setConfiguringWebhook] = useState(false);
+  const [webhookStatus, setWebhookStatus] = useState<'idle' | 'ok' | 'error'>('idle');
+
   useEffect(() => {
     const token = localStorage.getItem('wm_token');
     if (!token) { router.replace('/login'); return; }
@@ -39,12 +45,30 @@ export default function WhatsAppPage() {
 
   async function loadData() {
     try {
-      const [u] = await Promise.all([api.getMe(), checkStatus()]);
+      const [u, wh] = await Promise.all([api.getMe(), api.getWebhookUrl().catch(() => null), checkStatus()]);
       setUser(u);
       setAlertNumber(u.whatsapp_number || '');
       setRemindersNumber(u.reminders_number || '');
+      if (wh) {
+        setWebhookUrl(wh.webhook_url);
+        setWebhookConfigured(wh.backend_url_configured);
+      }
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function configureWebhook() {
+    setConfiguringWebhook(true);
+    setWebhookStatus('idle');
+    try {
+      const result = await api.configureWebhook();
+      setWebhookUrl(result.webhook_url);
+      setWebhookStatus('ok');
+    } catch {
+      setWebhookStatus('error');
+    } finally {
+      setConfiguringWebhook(false);
     }
   }
 
@@ -232,6 +256,65 @@ export default function WhatsAppPage() {
                     <span className="badge badge-green">✓ Salvo com sucesso</span>
                   )}
                 </div>
+              </div>
+
+              <div className="divider" />
+
+              {/* Configuração de Webhook */}
+              <div className="card mb-4">
+                <h3 className="font-semibold mb-1">Webhook de mensagens</h3>
+                <p className="text-sm text-muted mb-4">
+                  O webhook permite que o sistema receba as mensagens do WhatsApp em tempo real para monitorar grupos e processar lembretes.
+                </p>
+
+                {!webhookConfigured && (
+                  <div style={{ background: '#713f12', border: '1px solid var(--yellow)', borderRadius: 8, padding: '10px 14px', marginBottom: 12, fontSize: 13 }}>
+                    ⚠️ <strong>BACKEND_URL não configurado no Render.</strong> Configure a variável de ambiente <code>BACKEND_URL</code> com a URL do seu backend (ex: <code>https://whatsapp-monitor-backend.onrender.com</code>) e clique em Registrar Webhook.
+                  </div>
+                )}
+
+                {webhookStatus === 'ok' && (
+                  <div style={{ background: 'rgba(34,197,94,0.1)', border: '1px solid var(--green)', borderRadius: 8, padding: '10px 14px', marginBottom: 12, fontSize: 13, color: 'var(--green)' }}>
+                    ✅ Webhook registrado com sucesso! O sistema agora receberá as mensagens.
+                  </div>
+                )}
+                {webhookStatus === 'error' && (
+                  <div style={{ background: '#7f1d1d', border: '1px solid var(--red)', borderRadius: 8, padding: '10px 14px', marginBottom: 12, fontSize: 13, color: 'var(--red)' }}>
+                    ❌ Erro ao registrar webhook. Verifique se o WhatsApp está conectado e o BACKEND_URL está correto no Render.
+                  </div>
+                )}
+
+                {webhookUrl && (
+                  <div className="form-group" style={{ marginBottom: 12 }}>
+                    <label className="label">URL do webhook</label>
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      <input
+                        readOnly
+                        value={webhookUrl}
+                        style={{ flex: 1, fontSize: 12, fontFamily: 'monospace', color: 'var(--text2)' }}
+                        onClick={e => (e.target as HTMLInputElement).select()}
+                      />
+                      <button
+                        className="btn btn-ghost btn-sm"
+                        onClick={() => navigator.clipboard.writeText(webhookUrl)}
+                        style={{ flexShrink: 0 }}
+                      >
+                        Copiar
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                <button
+                  className="btn btn-primary"
+                  onClick={configureWebhook}
+                  disabled={configuringWebhook || !status}
+                >
+                  {configuringWebhook ? <><span className="spinner" /> Registrando...</> : '🔗 Registrar Webhook na uZapi'}
+                </button>
+                <p className="text-xs text-muted mt-2">
+                  Clique sempre que reconectar o WhatsApp ou se as mensagens pararem de chegar.
+                </p>
               </div>
 
               <div className="divider" />
