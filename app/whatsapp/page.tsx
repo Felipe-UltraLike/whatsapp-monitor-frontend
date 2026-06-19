@@ -41,16 +41,11 @@ export default function WhatsAppPage() {
       const res = await api.connectWhatsApp(instanceName);
       console.log('Resposta connect:', JSON.stringify(res));
 
-      // Tenta extrair o QR de diferentes estruturas de resposta da uZapi
+      // QR code vem em qr.instance.qrcode conforme resposta da uZapi v2
       const raw = res as Record<string, unknown>;
-      const qrcode =
-        (raw.qrcode as string) ||
-        (raw.qr as string) ||
-        ((raw.qr as Record<string, string>)?.base64) ||
-        ((raw.qr as Record<string, string>)?.qrcode) ||
-        ((raw.instance as Record<string, string>)?.qrcode) ||
-        (raw.base64 as string) ||
-        null;
+      const qrObj = raw.qr as Record<string, unknown>;
+      const instance = qrObj?.instance as Record<string, string>;
+      const qrcode = instance?.qrcode || (qrObj?.qrcode as string) || null;
 
       setQrData(qrcode);
       await checkStatus();
