@@ -98,6 +98,13 @@ export const api = {
     request<Reminder>(`/api/reminders/${id}/cancel`, { method: 'PATCH' }),
   deleteReminder: (id: string) =>
     request(`/api/reminders/${id}`, { method: 'DELETE' }),
+
+  // Logs
+  listLogs: (params?: Record<string, string>) => {
+    const qs = params ? '?' + new URLSearchParams(params).toString() : '';
+    return request<SystemLog[]>(`/api/logs${qs}`);
+  },
+  clearLogs: () => request('/api/logs', { method: 'DELETE' }),
 };
 
 // ===== TIPOS =====
@@ -220,5 +227,14 @@ export interface Reminder {
   sent_at?: string;
   status: 'pending' | 'sent' | 'cancelled';
   source: 'manual' | 'whatsapp';
+  created_at: string;
+}
+
+export interface SystemLog {
+  id: string;
+  level: 'info' | 'warn' | 'error' | 'success';
+  source: string;
+  message: string;
+  data?: Record<string, unknown>;
   created_at: string;
 }

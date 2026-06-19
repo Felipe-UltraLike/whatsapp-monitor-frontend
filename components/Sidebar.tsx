@@ -8,6 +8,7 @@ const NAV = [
   { label: 'Monitoramento', href: '/monitoramento', icon: '👁️' },
   { label: 'Lembretes', href: '/lembretes', icon: '⏰' },
   { label: 'Especificações', href: '/especificacoes', icon: '📋' },
+  { label: 'Logs', href: '/logs', icon: '🔍' },
 ];
 
 export default function Sidebar({ alertCount = 0 }: { alertCount?: number }) {
