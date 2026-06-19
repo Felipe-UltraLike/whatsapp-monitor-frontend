@@ -34,6 +34,7 @@ export default function WhatsAppPage() {
   const [webhookConfigured, setWebhookConfigured] = useState(false);
   const [configuringWebhook, setConfiguringWebhook] = useState(false);
   const [webhookStatus, setWebhookStatus] = useState<'idle' | 'ok' | 'error'>('idle');
+  const [webhookError, setWebhookError] = useState('');
 
   useEffect(() => {
     const token = localStorage.getItem('wm_token');
@@ -61,12 +62,14 @@ export default function WhatsAppPage() {
   async function configureWebhook() {
     setConfiguringWebhook(true);
     setWebhookStatus('idle');
+    setWebhookError('');
     try {
       const result = await api.configureWebhook();
       setWebhookUrl(result.webhook_url);
       setWebhookStatus('ok');
-    } catch {
+    } catch (err: unknown) {
       setWebhookStatus('error');
+      setWebhookError(err instanceof Error ? err.message : 'Erro desconhecido');
     } finally {
       setConfiguringWebhook(false);
     }
@@ -280,7 +283,7 @@ export default function WhatsAppPage() {
                 )}
                 {webhookStatus === 'error' && (
                   <div style={{ background: '#7f1d1d', border: '1px solid var(--red)', borderRadius: 8, padding: '10px 14px', marginBottom: 12, fontSize: 13, color: 'var(--red)' }}>
-                    ❌ Erro ao registrar webhook. Verifique se o WhatsApp está conectado e o BACKEND_URL está correto no Render.
+                    ❌ Erro ao registrar webhook.{webhookError ? ` Detalhe: ${webhookError}` : ' Verifique se o WhatsApp está conectado.'}
                   </div>
                 )}
 
