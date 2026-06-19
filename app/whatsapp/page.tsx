@@ -2,7 +2,15 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Sidebar from '@/components/Sidebar';
-import { api, WhatsAppStatus } from '@/lib/api';
+import { api, WhatsAppStatus, User } from '@/lib/api';
+
+function maskPhone(value: string): string {
+  const digits = value.replace(/\D/g, '').slice(0, 13);
+  if (digits.length <= 2) return `+${digits}`;
+  if (digits.length <= 4) return `+${digits.slice(0,2)} (${digits.slice(2)}`;
+  if (digits.length <= 9) return `+${digits.slice(0,2)} (${digits.slice(2,4)}) ${digits.slice(4)}`;
+  return `+${digits.slice(0,2)} (${digits.slice(2,4)}) ${digits.slice(4,9)}-${digits.slice(9)}`;
+}
 
 export default function WhatsAppPage() {
   const router = useRouter();
@@ -14,22 +22,57 @@ export default function WhatsAppPage() {
   const [showModal, setShowModal] = useState(false);
   const [instanceName, setInstanceName] = useState('WA Monitor');
 
+  // Campos de configuração de números
+  const [user, setUser] = useState<User | null>(null);
+  const [alertNumber, setAlertNumber] = useState('');
+  const [remindersNumber, setRemindersNumber] = useState('');
+  const [savingNumbers, setSavingNumbers] = useState(false);
+  const [savedNumbers, setSavedNumbers] = useState(false);
+
   useEffect(() => {
     const token = localStorage.getItem('wm_token');
     if (!token) { router.replace('/login'); return; }
-    checkStatus();
+    loadData();
     const interval = setInterval(checkStatus, 10000);
     return () => clearInterval(interval);
   }, []);
+
+  async function loadData() {
+    try {
+      const [u] = await Promise.all([api.getMe(), checkStatus()]);
+      setUser(u);
+      setAlertNumber(u.whatsapp_number || '');
+      setRemindersNumber(u.reminders_number || '');
+    } finally {
+      setLoading(false);
+    }
+  }
 
   async function checkStatus() {
     try {
       const s = await api.getWhatsAppStatus();
       setStatus(s);
     } catch {
-      // ignora erros de polling
+      // ignora
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function saveNumbers() {
+    setSavingNumbers(true);
+    setSavedNumbers(false);
+    try {
+      const digits = (n: string) => n.replace(/\D/g, '');
+      const updated = await api.updateMe({
+        whatsapp_number: digits(alertNumber) || undefined,
+        reminders_number: digits(remindersNumber) || undefined,
+      });
+      setUser(updated);
+      setSavedNumbers(true);
+      setTimeout(() => setSavedNumbers(false), 3000);
+    } finally {
+      setSavingNumbers(false);
     }
   }
 
@@ -39,14 +82,10 @@ export default function WhatsAppPage() {
     setError('');
     try {
       const res = await api.connectWhatsApp(instanceName);
-      console.log('Resposta connect:', JSON.stringify(res));
-
-      // QR code vem em qr.instance.qrcode conforme resposta da uZapi v2
       const raw = res as Record<string, unknown>;
       const qrObj = raw.qr as Record<string, unknown>;
       const instance = qrObj?.instance as Record<string, string>;
       const qrcode = instance?.qrcode || (qrObj?.qrcode as string) || null;
-
       setQrData(qrcode);
       await checkStatus();
     } catch (err: unknown) {
@@ -73,11 +112,11 @@ export default function WhatsAppPage() {
         <div className="topbar">
           <div>
             <h1 style={{ fontSize: '18px', fontWeight: '600' }}>Conexão WhatsApp</h1>
-            <p className="text-muted text-sm">Conecte seu WhatsApp para começar a monitorar</p>
+            <p className="text-muted text-sm">Conecte seu WhatsApp e configure os números de notificação</p>
           </div>
         </div>
 
-        <div className="page-content" style={{ maxWidth: 640 }}>
+        <div className="page-content" style={{ maxWidth: 680 }}>
           {loading ? (
             <div className="empty-state"><div className="spinner" style={{ width: 36, height: 36 }} /></div>
           ) : (
@@ -130,9 +169,7 @@ export default function WhatsAppPage() {
                         )}
                       </div>
                     ) : (
-                      <div className="qr-box">
-                        <div className="spinner" />
-                      </div>
+                      <div className="qr-box"><div className="spinner" /></div>
                     )}
                     <div style={{ textAlign: 'center', color: 'var(--text2)', fontSize: 13, maxWidth: 300 }}>
                       <strong>Como escanear:</strong><br />
@@ -142,21 +179,59 @@ export default function WhatsAppPage() {
                 </div>
               )}
 
-              {/* Ações */}
-              <div className="flex gap-3">
+              {/* Ações de conexão */}
+              <div className="flex gap-3 mb-6">
                 {!isConnected && (
                   <button className="btn btn-primary" onClick={() => setShowModal(true)} disabled={connecting}>
                     {connecting ? <><span className="spinner" /> Conectando...</> : '📱 Conectar WhatsApp'}
                   </button>
                 )}
                 {isConnected && (
-                  <button className="btn btn-danger" onClick={disconnect}>
-                    Desconectar
-                  </button>
+                  <button className="btn btn-danger" onClick={disconnect}>Desconectar</button>
                 )}
-                <button className="btn btn-ghost" onClick={checkStatus}>
-                  ↻ Verificar status
-                </button>
+                <button className="btn btn-ghost" onClick={checkStatus}>↻ Verificar status</button>
+              </div>
+
+              <div className="divider" />
+
+              {/* Configuração de números */}
+              <div className="card mb-4">
+                <h3 className="font-semibold mb-1">Números de notificação</h3>
+                <p className="text-sm text-muted mb-4">Configure os números que receberão alertas e lembretes via WhatsApp</p>
+
+                <div className="form-group">
+                  <label className="label">Número para alertas de clientes</label>
+                  <input
+                    type="tel"
+                    placeholder="+55 (11) 99999-9999"
+                    value={maskPhone(alertNumber)}
+                    onChange={e => setAlertNumber(e.target.value.replace(/\D/g, ''))}
+                  />
+                  <span className="text-xs text-muted">Receberá alertas quando a IA detectar bugs, reclamações ou sugestões dos seus clientes</span>
+                </div>
+
+                <div className="form-group">
+                  <label className="label">Número para lembretes</label>
+                  <input
+                    type="tel"
+                    placeholder="+55 (11) 99999-9999"
+                    value={maskPhone(remindersNumber)}
+                    onChange={e => setRemindersNumber(e.target.value.replace(/\D/g, ''))}
+                  />
+                  <span className="text-xs text-muted">
+                    Receberá os lembretes agendados. Mensagens enviadas <strong>deste número</strong> como
+                    &ldquo;Agendar lembrete para hoje às 15h - Ligar para o cliente&rdquo; criam lembretes automaticamente
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-3 mt-2">
+                  <button className="btn btn-primary" onClick={saveNumbers} disabled={savingNumbers}>
+                    {savingNumbers ? 'Salvando...' : 'Salvar números'}
+                  </button>
+                  {savedNumbers && (
+                    <span className="badge badge-green">✓ Salvo com sucesso</span>
+                  )}
+                </div>
               </div>
 
               <div className="divider" />
@@ -166,10 +241,11 @@ export default function WhatsAppPage() {
                 <h3 className="font-semibold mb-3">Como funciona</h3>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                   {[
-                    ['1', 'Conecte seu WhatsApp escaneando o QR Code', 'Funciona como o WhatsApp Web — sem instalar nada'],
-                    ['2', 'Vá em Clientes e cadastre seus clientes', 'Adicione também os sistemas que você desenvolveu para cada um'],
-                    ['3', 'Configure o Monitoramento', 'Vincule conversas e grupos do WhatsApp a cada cliente'],
-                    ['4', 'A IA monitora automaticamente', 'Quando identificar bug, reclamação ou sugestão, você recebe alerta no próprio WhatsApp e uma especificação é gerada para os devs'],
+                    ['1', 'Conecte seu WhatsApp escaneando o QR Code', 'Funciona como WhatsApp Web — sem instalar nada'],
+                    ['2', 'Configure os números acima', 'Você pode usar o mesmo número para alertas e lembretes'],
+                    ['3', 'Vá em Clientes e vincule grupos', 'Selecione os grupos de cada cliente para monitorar'],
+                    ['4', 'A IA monitora automaticamente', 'Detecta bugs e reclamações, gera specs para devs e envia alertas no WhatsApp'],
+                    ['5', 'Crie lembretes pelo WhatsApp', 'Envie uma mensagem como "Lembrete amanhã às 9h - Reunião" do número configurado'],
                   ].map(([num, title, desc]) => (
                     <div key={num} className="flex gap-3">
                       <div style={{ width: 28, height: 28, borderRadius: '50%', background: 'var(--primary)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 700, flexShrink: 0 }}>{num}</div>
@@ -186,7 +262,7 @@ export default function WhatsAppPage() {
         </div>
       </div>
 
-      {/* Modal de criação da instância */}
+      {/* Modal nome da instância */}
       {showModal && (
         <div className="modal-overlay" onClick={() => setShowModal(false)}>
           <div className="modal" onClick={e => e.stopPropagation()}>

@@ -84,6 +84,18 @@ export const api = {
   },
   updateSpecification: (id: string, data: { status?: string; assigned_dev?: string }) =>
     request<Specification>(`/api/alerts/specifications/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+
+  // Reminders
+  listReminders: (params?: Record<string, string>) => {
+    const qs = params ? '?' + new URLSearchParams(params).toString() : '';
+    return request<Reminder[]>(`/api/reminders${qs}`);
+  },
+  createReminder: (data: { title: string; message: string; scheduled_at: string }) =>
+    request<Reminder>('/api/reminders', { method: 'POST', body: JSON.stringify(data) }),
+  cancelReminder: (id: string) =>
+    request<Reminder>(`/api/reminders/${id}/cancel`, { method: 'PATCH' }),
+  deleteReminder: (id: string) =>
+    request(`/api/reminders/${id}`, { method: 'DELETE' }),
 };
 
 // ===== TIPOS =====
@@ -92,6 +104,7 @@ export interface User {
   name: string;
   email: string;
   whatsapp_number?: string;
+  reminders_number?: string;
   created_at?: string;
 }
 
@@ -150,6 +163,7 @@ export interface Alert {
   client_color?: string;
   alert_type: 'complaint' | 'bug' | 'suggestion' | 'request';
   severity: 'low' | 'medium' | 'high' | 'critical';
+  output_type?: 'spec' | 'insight';
   summary: string;
   original_message: string;
   chat_name?: string;
@@ -191,5 +205,17 @@ export interface Specification {
   assigned_dev?: string;
   alert_type?: string;
   original_message?: string;
+  created_at: string;
+}
+
+export interface Reminder {
+  id: string;
+  user_id: string;
+  title: string;
+  message: string;
+  scheduled_at: string;
+  sent_at?: string;
+  status: 'pending' | 'sent' | 'cancelled';
+  source: 'manual' | 'whatsapp';
   created_at: string;
 }

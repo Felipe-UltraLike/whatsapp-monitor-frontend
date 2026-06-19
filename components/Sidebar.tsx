@@ -6,6 +6,7 @@ const NAV = [
   { label: 'WhatsApp', href: '/whatsapp', icon: '📱' },
   { label: 'Clientes', href: '/clientes', icon: '👥' },
   { label: 'Monitoramento', href: '/monitoramento', icon: '👁️' },
+  { label: 'Lembretes', href: '/lembretes', icon: '⏰' },
   { label: 'Especificações', href: '/especificacoes', icon: '📋' },
 ];
 
