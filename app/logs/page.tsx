@@ -30,7 +30,23 @@ export default function LogsPage() {
   const [levelFilter, setLevelFilter] = useState<string>('');
   const [sourceFilter, setSourceFilter] = useState<string>('');
   const [expanded, setExpanded] = useState<string | null>(null);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  function copyLog(e: React.MouseEvent, log: SystemLog) {
+    e.stopPropagation();
+    const text = `[${log.level.toUpperCase()}] ${formatTime(log.created_at)} | ${log.source} | ${log.message}\n${log.data ? JSON.stringify(log.data, null, 2) : ''}`;
+    navigator.clipboard.writeText(text);
+    setCopiedId(log.id);
+    setTimeout(() => setCopiedId(null), 1500);
+  }
+
+  function copyAll() {
+    const text = logs.map(log =>
+      `[${log.level.toUpperCase()}] ${formatTime(log.created_at)} | ${log.source} | ${log.message}\n${log.data ? JSON.stringify(log.data, null, 2) : ''}`
+    ).join('\n\n');
+    navigator.clipboard.writeText(text);
+  }
 
   useEffect(() => {
     const token = localStorage.getItem('wm_token');
@@ -84,6 +100,7 @@ export default function LogsPage() {
               {autoRefresh ? '🟢 Auto-atualizar' : '⚪ Pausado'}
             </button>
             <button className="btn btn-ghost btn-sm" onClick={loadLogs}>↻ Atualizar</button>
+            <button className="btn btn-ghost btn-sm" onClick={copyAll}>📋 Copiar tudo</button>
             <button className="btn btn-ghost btn-sm" style={{ color: 'var(--red)' }} onClick={clearLogs}>🗑 Limpar</button>
           </div>
         </div>
@@ -149,6 +166,18 @@ export default function LogsPage() {
                         {SOURCE_LABEL[log.source] || log.source}
                       </span>
                       <span style={{ fontSize: 13, flex: 1 }}>{log.message}</span>
+                      <button
+                        onClick={(e) => copyLog(e, log)}
+                        title="Copiar log"
+                        style={{
+                          background: copiedId === log.id ? 'var(--green)' : 'var(--bg2)',
+                          color: copiedId === log.id ? '#fff' : 'var(--text)',
+                          border: '2px solid var(--border)', borderRadius: 4,
+                          fontSize: 11, padding: '2px 8px', fontWeight: 700, flexShrink: 0,
+                        }}
+                      >
+                        {copiedId === log.id ? '✓ Copiado' : '📋'}
+                      </button>
                       {hasData && <span style={{ fontSize: 11, color: 'var(--text2)' }}>{isOpen ? '▼' : '▶'}</span>}
                     </div>
                     {isOpen && hasData && (
