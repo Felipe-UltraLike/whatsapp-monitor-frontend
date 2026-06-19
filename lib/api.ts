@@ -106,7 +106,8 @@ export interface User {
   name: string;
   email: string;
   whatsapp_number?: string;
-  reminders_number?: string;
+  system_group_id?: string;
+  system_group_name?: string;
   created_at?: string;
 }
 

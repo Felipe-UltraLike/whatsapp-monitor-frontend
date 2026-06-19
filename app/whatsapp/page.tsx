@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Sidebar from '@/components/Sidebar';
-import { api, WhatsAppStatus, User } from '@/lib/api';
+import { api, WhatsAppStatus, User, Chat } from '@/lib/api';
 
 function maskPhone(value: string): string {
   const digits = value.replace(/\D/g, '').slice(0, 13);
@@ -22,12 +22,19 @@ export default function WhatsAppPage() {
   const [showModal, setShowModal] = useState(false);
   const [instanceName, setInstanceName] = useState('WA Monitor');
 
-  // Campos de configuração de números
+  // Configurações do usuário
   const [user, setUser] = useState<User | null>(null);
   const [alertNumber, setAlertNumber] = useState('');
-  const [remindersNumber, setRemindersNumber] = useState('');
   const [savingNumbers, setSavingNumbers] = useState(false);
   const [savedNumbers, setSavedNumbers] = useState(false);
+
+  // Grupo do sistema
+  const [systemGroup, setSystemGroup] = useState<{ id: string; name: string } | null>(null);
+  const [showGroupModal, setShowGroupModal] = useState(false);
+  const [groupChats, setGroupChats] = useState<Chat[]>([]);
+  const [loadingGroups, setLoadingGroups] = useState(false);
+  const [groupSearch, setGroupSearch] = useState('');
+  const [savingGroup, setSavingGroup] = useState(false);
 
   // Webhook
   const [webhookUrl, setWebhookUrl] = useState('');
@@ -46,10 +53,16 @@ export default function WhatsAppPage() {
 
   async function loadData() {
     try {
-      const [u, wh] = await Promise.all([api.getMe(), api.getWebhookUrl().catch(() => null), checkStatus()]);
+      const [u, wh] = await Promise.all([
+        api.getMe(),
+        api.getWebhookUrl().catch(() => null),
+        checkStatus(),
+      ]);
       setUser(u);
       setAlertNumber(u.whatsapp_number || '');
-      setRemindersNumber(u.reminders_number || '');
+      if (u.system_group_id) {
+        setSystemGroup({ id: u.system_group_id, name: u.system_group_name || u.system_group_id });
+      }
       if (wh) {
         setWebhookUrl(wh.webhook_url);
         setWebhookConfigured(wh.backend_url_configured);
@@ -59,29 +72,11 @@ export default function WhatsAppPage() {
     }
   }
 
-  async function configureWebhook() {
-    setConfiguringWebhook(true);
-    setWebhookStatus('idle');
-    setWebhookError('');
-    try {
-      const result = await api.configureWebhook();
-      setWebhookUrl(result.webhook_url);
-      setWebhookStatus('ok');
-    } catch (err: unknown) {
-      setWebhookStatus('error');
-      setWebhookError(err instanceof Error ? err.message : 'Erro desconhecido');
-    } finally {
-      setConfiguringWebhook(false);
-    }
-  }
-
   async function checkStatus() {
     try {
       const s = await api.getWhatsAppStatus();
       setStatus(s);
-    } catch {
-      // ignora
-    } finally {
+    } catch { /* ignora */ } finally {
       setLoading(false);
     }
   }
@@ -90,17 +85,45 @@ export default function WhatsAppPage() {
     setSavingNumbers(true);
     setSavedNumbers(false);
     try {
-      const digits = (n: string) => n.replace(/\D/g, '');
-      const updated = await api.updateMe({
-        whatsapp_number: digits(alertNumber) || undefined,
-        reminders_number: digits(remindersNumber) || undefined,
-      });
+      const digits = (n: string) => n.replace(/\D/g, '') || undefined;
+      const updated = await api.updateMe({ whatsapp_number: digits(alertNumber) });
       setUser(updated);
       setSavedNumbers(true);
       setTimeout(() => setSavedNumbers(false), 3000);
     } finally {
       setSavingNumbers(false);
     }
+  }
+
+  async function openGroupModal() {
+    setShowGroupModal(true);
+    setLoadingGroups(true);
+    setGroupSearch('');
+    try {
+      const chats = await api.listChats();
+      setGroupChats(chats.filter(c => c.type === 'group'));
+    } finally {
+      setLoadingGroups(false);
+    }
+  }
+
+  async function selectGroup(chat: Chat) {
+    setSavingGroup(true);
+    try {
+      const updated = await api.updateMe({ system_group_id: chat.id, system_group_name: chat.name });
+      setUser(updated);
+      setSystemGroup({ id: chat.id, name: chat.name });
+      setShowGroupModal(false);
+    } finally {
+      setSavingGroup(false);
+    }
+  }
+
+  async function removeGroup() {
+    if (!confirm('Remover o grupo de comunicação do sistema?')) return;
+    const updated = await api.updateMe({ system_group_id: '', system_group_name: '' });
+    setUser(updated);
+    setSystemGroup(null);
   }
 
   async function connect() {
@@ -129,8 +152,25 @@ export default function WhatsAppPage() {
     await checkStatus();
   }
 
+  async function configureWebhook() {
+    setConfiguringWebhook(true);
+    setWebhookStatus('idle');
+    setWebhookError('');
+    try {
+      const result = await api.configureWebhook();
+      setWebhookUrl(result.webhook_url);
+      setWebhookStatus('ok');
+    } catch (err: unknown) {
+      setWebhookStatus('error');
+      setWebhookError(err instanceof Error ? err.message : 'Erro desconhecido');
+    } finally {
+      setConfiguringWebhook(false);
+    }
+  }
+
   const isConnected = status?.status === 'connected' || status?.connected;
   const isPending = status?.status === 'qr_pending';
+  const filteredGroups = groupChats.filter(c => c.name.toLowerCase().includes(groupSearch.toLowerCase()));
 
   return (
     <div className="page">
@@ -139,7 +179,7 @@ export default function WhatsAppPage() {
         <div className="topbar">
           <div>
             <h1 style={{ fontSize: '18px', fontWeight: '600' }}>Conexão WhatsApp</h1>
-            <p className="text-muted text-sm">Conecte seu WhatsApp e configure os números de notificação</p>
+            <p className="text-muted text-sm">Conecte seu WhatsApp e configure o grupo de comunicação</p>
           </div>
         </div>
 
@@ -151,36 +191,23 @@ export default function WhatsAppPage() {
               {/* Status */}
               <div className="card mb-4">
                 <div className="flex items-center gap-3">
-                  <div style={{
-                    width: 12, height: 12, borderRadius: '50%',
-                    background: isConnected ? 'var(--green)' : isPending ? 'var(--yellow)' : 'var(--red)',
-                    flexShrink: 0,
-                  }} />
+                  <div style={{ width: 12, height: 12, borderRadius: '50%', background: isConnected ? 'var(--green)' : isPending ? 'var(--yellow)' : 'var(--red)', flexShrink: 0 }} />
                   <div>
                     <div className="font-semibold">
                       {isConnected ? 'WhatsApp conectado' : isPending ? 'Aguardando leitura do QR Code' : 'WhatsApp desconectado'}
                     </div>
                     <div className="text-sm text-muted">
-                      {isConnected
-                        ? 'Seu WhatsApp está ativo e monitorando as conversas selecionadas'
-                        : isPending
-                        ? 'Abra o WhatsApp no celular e escaneie o código QR abaixo'
-                        : 'Clique em "Conectar" para vincular seu WhatsApp'}
+                      {isConnected ? 'Seu WhatsApp está ativo' : isPending ? 'Escaneie o QR Code abaixo com o celular' : 'Clique em "Conectar" para vincular'}
                     </div>
                   </div>
-                  {isConnected && (
-                    <span className="badge badge-green" style={{ marginLeft: 'auto' }}>● Ativo</span>
-                  )}
+                  {isConnected && <span className="badge badge-green" style={{ marginLeft: 'auto' }}>● Ativo</span>}
                 </div>
               </div>
 
               {error && (
-                <div style={{ background: '#7f1d1d', border: '1px solid var(--red)', borderRadius: 8, padding: '10px 14px', color: 'var(--red)', marginBottom: 16, fontSize: 13 }}>
-                  {error}
-                </div>
+                <div style={{ background: '#7f1d1d', border: '1px solid var(--red)', borderRadius: 8, padding: '10px 14px', color: 'var(--red)', marginBottom: 16, fontSize: 13 }}>{error}</div>
               )}
 
-              {/* QR Code */}
               {(isPending || qrData) && !isConnected && (
                 <div className="card mb-4">
                   <h3 className="font-semibold mb-4">Escaneie o QR Code</h3>
@@ -190,9 +217,7 @@ export default function WhatsAppPage() {
                         {qrData.startsWith('data:image') ? (
                           <img src={qrData} alt="QR Code" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
                         ) : (
-                          <div style={{ textAlign: 'center', padding: 20 }}>
-                            <div style={{ fontFamily: 'monospace', wordBreak: 'break-all', fontSize: 8 }}>{qrData}</div>
-                          </div>
+                          <div style={{ fontFamily: 'monospace', wordBreak: 'break-all', fontSize: 8, padding: 20 }}>{qrData}</div>
                         )}
                       </div>
                     ) : (
@@ -200,182 +225,208 @@ export default function WhatsAppPage() {
                     )}
                     <div style={{ textAlign: 'center', color: 'var(--text2)', fontSize: 13, maxWidth: 300 }}>
                       <strong>Como escanear:</strong><br />
-                      Abra o WhatsApp → Menu (3 pontos) → Aparelhos conectados → Conectar aparelho
+                      WhatsApp → Menu → Aparelhos conectados → Conectar aparelho
                     </div>
                   </div>
                 </div>
               )}
 
-              {/* Ações de conexão */}
               <div className="flex gap-3 mb-6">
                 {!isConnected && (
                   <button className="btn btn-primary" onClick={() => setShowModal(true)} disabled={connecting}>
                     {connecting ? <><span className="spinner" /> Conectando...</> : '📱 Conectar WhatsApp'}
                   </button>
                 )}
-                {isConnected && (
-                  <button className="btn btn-danger" onClick={disconnect}>Desconectar</button>
-                )}
+                {isConnected && <button className="btn btn-danger" onClick={disconnect}>Desconectar</button>}
                 <button className="btn btn-ghost" onClick={checkStatus}>↻ Verificar status</button>
               </div>
 
               <div className="divider" />
 
-              {/* Configuração de números */}
+              {/* Grupo de comunicação do sistema */}
               <div className="card mb-4">
-                <h3 className="font-semibold mb-1">Números de notificação</h3>
-                <p className="text-sm text-muted mb-4">Configure os números que receberão alertas e lembretes via WhatsApp</p>
+                <h3 className="font-semibold mb-1">Grupo de comunicação do sistema</h3>
+                <p className="text-sm text-muted mb-4">
+                  Crie um grupo no WhatsApp (ex: <strong>"WA Monitor"</strong>) e selecione aqui. A IA responderá nesse grupo — você pode criar lembretes, consultar alertas e pedir informações diretamente pelo WhatsApp.
+                </p>
 
+                {systemGroup ? (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, background: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.3)', borderRadius: 10, padding: '12px 16px', marginBottom: 12 }}>
+                    <span style={{ fontSize: 22 }}>👥</span>
+                    <div style={{ flex: 1 }}>
+                      <div className="font-semibold">{systemGroup.name}</div>
+                      <div className="text-xs text-muted">Grupo de comunicação ativo — a IA responde aqui</div>
+                    </div>
+                    <span className="badge badge-green">● Ativo</span>
+                    <button className="btn btn-ghost btn-sm" onClick={openGroupModal}>Trocar</button>
+                    <button className="btn btn-ghost btn-sm" style={{ color: 'var(--red)' }} onClick={removeGroup}>✕</button>
+                  </div>
+                ) : (
+                  <div style={{ background: 'rgba(99,102,241,0.08)', border: '1px solid rgba(99,102,241,0.3)', borderRadius: 10, padding: '14px 16px', marginBottom: 12 }}>
+                    <div className="text-sm mb-2">⚠️ Nenhum grupo configurado. Crie um grupo no WhatsApp e selecione abaixo.</div>
+                    <div className="text-xs text-muted">Dica: crie um grupo só com você mesmo e nomeie como "WA Monitor" ou similar.</div>
+                  </div>
+                )}
+
+                <button className="btn btn-primary btn-sm" onClick={openGroupModal} disabled={!isConnected}>
+                  {systemGroup ? '↔ Trocar grupo' : '+ Selecionar grupo'}
+                </button>
+                {!isConnected && <span className="text-xs text-muted ml-3">Conecte o WhatsApp primeiro</span>}
+
+                {systemGroup && (
+                  <div className="mt-4" style={{ background: 'var(--bg3)', borderRadius: 8, padding: '12px 14px' }}>
+                    <div className="text-xs font-semibold mb-2">O que você pode fazer no grupo:</div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                      {[
+                        ['⏰', 'Criar lembretes', '"Lembrete hoje às 15h - Ligar para o cliente X"'],
+                        ['📊', 'Consultar alertas', '"Quantos alertas abertos tenho?"'],
+                        ['💬', 'Conversar com a IA', 'Tire dúvidas e peça informações do sistema'],
+                      ].map(([icon, title, desc]) => (
+                        <div key={title} className="flex gap-2">
+                          <span style={{ fontSize: 14 }}>{icon}</span>
+                          <div>
+                            <span className="text-sm font-semibold">{title}</span>
+                            <span className="text-xs text-muted ml-2">ex: {desc}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div className="divider" />
+
+              {/* Número para alertas */}
+              <div className="card mb-4">
+                <h3 className="font-semibold mb-1">Número para alertas</h3>
+                <p className="text-sm text-muted mb-4">
+                  Número que receberá alertas de clientes caso o grupo de comunicação não esteja configurado.
+                </p>
                 <div className="form-group">
-                  <label className="label">Número para alertas de clientes</label>
+                  <label className="label">Número WhatsApp</label>
                   <input
                     type="tel"
                     placeholder="+55 (11) 99999-9999"
                     value={maskPhone(alertNumber)}
                     onChange={e => setAlertNumber(e.target.value.replace(/\D/g, ''))}
                   />
-                  <span className="text-xs text-muted">Receberá alertas quando a IA detectar bugs, reclamações ou sugestões dos seus clientes</span>
                 </div>
-
-                <div className="form-group">
-                  <label className="label">Número para lembretes</label>
-                  <input
-                    type="tel"
-                    placeholder="+55 (11) 99999-9999"
-                    value={maskPhone(remindersNumber)}
-                    onChange={e => setRemindersNumber(e.target.value.replace(/\D/g, ''))}
-                  />
-                  <span className="text-xs text-muted">
-                    Receberá os lembretes agendados. Mensagens enviadas <strong>deste número</strong> como
-                    &ldquo;Agendar lembrete para hoje às 15h - Ligar para o cliente&rdquo; criam lembretes automaticamente
-                  </span>
-                </div>
-
                 <div className="flex items-center gap-3 mt-2">
-                  <button className="btn btn-primary" onClick={saveNumbers} disabled={savingNumbers}>
-                    {savingNumbers ? 'Salvando...' : 'Salvar números'}
+                  <button className="btn btn-primary btn-sm" onClick={saveNumbers} disabled={savingNumbers}>
+                    {savingNumbers ? 'Salvando...' : 'Salvar número'}
                   </button>
-                  {savedNumbers && (
-                    <span className="badge badge-green">✓ Salvo com sucesso</span>
-                  )}
+                  {savedNumbers && <span className="badge badge-green">✓ Salvo</span>}
                 </div>
               </div>
 
               <div className="divider" />
 
-              {/* Configuração de Webhook */}
+              {/* Webhook */}
               <div className="card mb-4">
                 <h3 className="font-semibold mb-1">Webhook de mensagens</h3>
-                <p className="text-sm text-muted mb-4">
-                  O webhook permite que o sistema receba as mensagens do WhatsApp em tempo real para monitorar grupos e processar lembretes.
-                </p>
+                <p className="text-sm text-muted mb-4">Necessário para receber mensagens em tempo real. Clique sempre que reconectar o WhatsApp.</p>
 
                 {!webhookConfigured && (
                   <div style={{ background: '#713f12', border: '1px solid var(--yellow)', borderRadius: 8, padding: '10px 14px', marginBottom: 12, fontSize: 13 }}>
-                    ⚠️ <strong>BACKEND_URL não configurado no Render.</strong> Configure a variável de ambiente <code>BACKEND_URL</code> com a URL do seu backend (ex: <code>https://whatsapp-monitor-backend.onrender.com</code>) e clique em Registrar Webhook.
+                    ⚠️ Configure <code>BACKEND_URL</code> no Render com a URL do backend antes de registrar.
                   </div>
                 )}
-
                 {webhookStatus === 'ok' && (
                   <div style={{ background: 'rgba(34,197,94,0.1)', border: '1px solid var(--green)', borderRadius: 8, padding: '10px 14px', marginBottom: 12, fontSize: 13, color: 'var(--green)' }}>
-                    ✅ Webhook registrado com sucesso! O sistema agora receberá as mensagens.
+                    ✅ Webhook registrado com sucesso!
                   </div>
                 )}
                 {webhookStatus === 'error' && (
                   <div style={{ background: '#7f1d1d', border: '1px solid var(--red)', borderRadius: 8, padding: '10px 14px', marginBottom: 12, fontSize: 13, color: 'var(--red)' }}>
-                    ❌ Erro ao registrar webhook.{webhookError ? ` Detalhe: ${webhookError}` : ' Verifique se o WhatsApp está conectado.'}
+                    ❌ {webhookError || 'Erro ao registrar webhook.'}
                   </div>
                 )}
-
                 {webhookUrl && (
                   <div className="form-group" style={{ marginBottom: 12 }}>
                     <label className="label">URL do webhook</label>
-                    <div style={{ display: 'flex', gap: 8 }}>
-                      <input
-                        readOnly
-                        value={webhookUrl}
-                        style={{ flex: 1, fontSize: 12, fontFamily: 'monospace', color: 'var(--text2)' }}
-                        onClick={e => (e.target as HTMLInputElement).select()}
-                      />
-                      <button
-                        className="btn btn-ghost btn-sm"
-                        onClick={() => navigator.clipboard.writeText(webhookUrl)}
-                        style={{ flexShrink: 0 }}
-                      >
-                        Copiar
-                      </button>
+                    <div className="flex gap-2">
+                      <input readOnly value={webhookUrl} style={{ flex: 1, fontSize: 12, fontFamily: 'monospace', color: 'var(--text2)' }} onClick={e => (e.target as HTMLInputElement).select()} />
+                      <button className="btn btn-ghost btn-sm" onClick={() => navigator.clipboard.writeText(webhookUrl)}>Copiar</button>
                     </div>
                   </div>
                 )}
-
-                <button
-                  className="btn btn-primary"
-                  onClick={configureWebhook}
-                  disabled={configuringWebhook || !status}
-                >
+                <button className="btn btn-primary" onClick={configureWebhook} disabled={configuringWebhook}>
                   {configuringWebhook ? <><span className="spinner" /> Registrando...</> : '🔗 Registrar Webhook na uZapi'}
                 </button>
-                <p className="text-xs text-muted mt-2">
-                  Clique sempre que reconectar o WhatsApp ou se as mensagens pararem de chegar.
-                </p>
-              </div>
-
-              <div className="divider" />
-
-              {/* Instruções */}
-              <div className="card">
-                <h3 className="font-semibold mb-3">Como funciona</h3>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                  {[
-                    ['1', 'Conecte seu WhatsApp escaneando o QR Code', 'Funciona como WhatsApp Web — sem instalar nada'],
-                    ['2', 'Configure os números acima', 'Você pode usar o mesmo número para alertas e lembretes'],
-                    ['3', 'Vá em Clientes e vincule grupos', 'Selecione os grupos de cada cliente para monitorar'],
-                    ['4', 'A IA monitora automaticamente', 'Detecta bugs e reclamações, gera specs para devs e envia alertas no WhatsApp'],
-                    ['5', 'Crie lembretes pelo WhatsApp', 'Envie uma mensagem como "Lembrete amanhã às 9h - Reunião" do número configurado'],
-                  ].map(([num, title, desc]) => (
-                    <div key={num} className="flex gap-3">
-                      <div style={{ width: 28, height: 28, borderRadius: '50%', background: 'var(--primary)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 700, flexShrink: 0 }}>{num}</div>
-                      <div>
-                        <div className="font-semibold" style={{ fontSize: 13 }}>{title}</div>
-                        <div className="text-xs text-muted">{desc}</div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
               </div>
             </>
           )}
         </div>
       </div>
 
-      {/* Modal nome da instância */}
+      {/* Modal instância */}
       {showModal && (
         <div className="modal-overlay" onClick={() => setShowModal(false)}>
           <div className="modal" onClick={e => e.stopPropagation()}>
             <div className="modal-title">📱 Configurar conexão WhatsApp</div>
-            <p className="text-sm text-muted mb-4">
-              Escolha um nome para identificar esta conexão na uZapi. A instância será criada automaticamente.
-            </p>
+            <p className="text-sm text-muted mb-4">Escolha um nome para identificar esta conexão na uZapi.</p>
             <div className="form-group">
               <label className="label">Nome da instância *</label>
-              <input
-                type="text"
-                value={instanceName}
-                onChange={e => setInstanceName(e.target.value)}
-                placeholder="Ex: WA Monitor, Felipe, Monitor-Projetos"
-                autoFocus
-              />
-              <span className="text-xs text-muted">Use letras, números e hífens. Sem espaços ou caracteres especiais.</span>
+              <input type="text" value={instanceName} onChange={e => setInstanceName(e.target.value)} placeholder="Ex: WA Monitor" autoFocus />
             </div>
             <div className="flex gap-3 mt-4">
               <button className="btn btn-ghost flex-1" onClick={() => setShowModal(false)}>Cancelar</button>
-              <button
-                className="btn btn-primary flex-1"
-                onClick={connect}
-                disabled={!instanceName.trim()}
-              >
-                Criar e conectar
-              </button>
+              <button className="btn btn-primary flex-1" onClick={connect} disabled={!instanceName.trim()}>Criar e conectar</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal seleção de grupo */}
+      {showGroupModal && (
+        <div className="modal-overlay" onClick={() => setShowGroupModal(false)}>
+          <div className="modal" style={{ maxWidth: 480 }} onClick={e => e.stopPropagation()}>
+            <div className="modal-title">👥 Selecionar grupo de comunicação</div>
+            <p className="text-sm text-muted mb-4">
+              Selecione o grupo do WhatsApp onde a IA vai responder. Crie um grupo dedicado (ex: &ldquo;WA Monitor&rdquo;) antes.
+            </p>
+            <div className="form-group" style={{ marginBottom: 12 }}>
+              <input placeholder="Buscar grupo..." value={groupSearch} onChange={e => setGroupSearch(e.target.value)} autoFocus />
+            </div>
+            {loadingGroups ? (
+              <div style={{ display: 'flex', justifyContent: 'center', padding: 32 }}>
+                <div className="spinner" style={{ width: 32, height: 32 }} />
+              </div>
+            ) : filteredGroups.length === 0 ? (
+              <div className="empty-state" style={{ padding: 24 }}>
+                <span style={{ fontSize: 32 }}>👥</span>
+                <p className="text-sm">{groupChats.length === 0 ? 'Nenhum grupo encontrado. Crie um grupo no WhatsApp primeiro.' : 'Nenhum grupo com esse nome.'}</p>
+              </div>
+            ) : (
+              <div style={{ maxHeight: 360, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 6 }}>
+                {filteredGroups.map(chat => {
+                  const isSelected = systemGroup?.id === chat.id;
+                  return (
+                    <div
+                      key={chat.id}
+                      onClick={() => !savingGroup && selectGroup(chat)}
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: 12,
+                        padding: '12px 14px', borderRadius: 8, cursor: 'pointer',
+                        background: isSelected ? 'rgba(34,197,94,0.08)' : 'var(--bg3)',
+                        border: `1px solid ${isSelected ? 'rgba(34,197,94,0.3)' : 'transparent'}`,
+                        opacity: savingGroup ? 0.6 : 1, transition: 'all 0.15s',
+                      }}
+                    >
+                      <span style={{ fontSize: 20 }}>👥</span>
+                      <div style={{ flex: 1 }}>
+                        <div className="font-semibold text-sm">{chat.name}</div>
+                        <div className="text-xs text-muted">Grupo do WhatsApp</div>
+                      </div>
+                      {isSelected && <span className="badge badge-green" style={{ fontSize: 11 }}>● Atual</span>}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+            <div className="flex gap-3 mt-4">
+              <button className="btn btn-ghost flex-1" onClick={() => setShowGroupModal(false)}>Fechar</button>
             </div>
           </div>
         </div>
