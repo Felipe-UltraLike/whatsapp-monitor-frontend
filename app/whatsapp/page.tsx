@@ -11,6 +11,8 @@ export default function WhatsAppPage() {
   const [loading, setLoading] = useState(true);
   const [connecting, setConnecting] = useState(false);
   const [error, setError] = useState('');
+  const [showModal, setShowModal] = useState(false);
+  const [instanceName, setInstanceName] = useState('WA Monitor');
 
   useEffect(() => {
     const token = localStorage.getItem('wm_token');
@@ -32,10 +34,11 @@ export default function WhatsAppPage() {
   }
 
   async function connect() {
+    setShowModal(false);
     setConnecting(true);
     setError('');
     try {
-      const res = await api.connectWhatsApp();
+      const res = await api.connectWhatsApp(instanceName);
       const qr = (res.qr as { base64?: string; qrcode?: string });
       setQrData(qr?.base64 || qr?.qrcode || null);
       await checkStatus();
@@ -135,7 +138,7 @@ export default function WhatsAppPage() {
               {/* Ações */}
               <div className="flex gap-3">
                 {!isConnected && (
-                  <button className="btn btn-primary" onClick={connect} disabled={connecting}>
+                  <button className="btn btn-primary" onClick={() => setShowModal(true)} disabled={connecting}>
                     {connecting ? <><span className="spinner" /> Conectando...</> : '📱 Conectar WhatsApp'}
                   </button>
                 )}
@@ -175,6 +178,39 @@ export default function WhatsAppPage() {
           )}
         </div>
       </div>
+
+      {/* Modal de criação da instância */}
+      {showModal && (
+        <div className="modal-overlay" onClick={() => setShowModal(false)}>
+          <div className="modal" onClick={e => e.stopPropagation()}>
+            <div className="modal-title">📱 Configurar conexão WhatsApp</div>
+            <p className="text-sm text-muted mb-4">
+              Escolha um nome para identificar esta conexão na uZapi. A instância será criada automaticamente.
+            </p>
+            <div className="form-group">
+              <label className="label">Nome da instância *</label>
+              <input
+                type="text"
+                value={instanceName}
+                onChange={e => setInstanceName(e.target.value)}
+                placeholder="Ex: WA Monitor, Felipe, Monitor-Projetos"
+                autoFocus
+              />
+              <span className="text-xs text-muted">Use letras, números e hífens. Sem espaços ou caracteres especiais.</span>
+            </div>
+            <div className="flex gap-3 mt-4">
+              <button className="btn btn-ghost flex-1" onClick={() => setShowModal(false)}>Cancelar</button>
+              <button
+                className="btn btn-primary flex-1"
+                onClick={connect}
+                disabled={!instanceName.trim()}
+              >
+                Criar e conectar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

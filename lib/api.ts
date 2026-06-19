@@ -40,7 +40,7 @@ export const api = {
 
   // WhatsApp
   getWhatsAppStatus: () => request<WhatsAppStatus>('/api/whatsapp/status'),
-  connectWhatsApp: () => request<{ qr: unknown; webhook_configured: boolean }>('/api/whatsapp/connect', { method: 'POST' }),
+  connectWhatsApp: (instanceName?: string) => request<{ qr: unknown; webhook_configured: boolean; session_key: string }>('/api/whatsapp/connect', { method: 'POST', body: JSON.stringify({ instance_name: instanceName }) }),
   disconnectWhatsApp: () => request('/api/whatsapp/disconnect', { method: 'POST' }),
   listChats: () => request<Chat[]>('/api/whatsapp/chats'),
 
