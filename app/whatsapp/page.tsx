@@ -39,8 +39,20 @@ export default function WhatsAppPage() {
     setError('');
     try {
       const res = await api.connectWhatsApp(instanceName);
-      const qr = (res.qr as { base64?: string; qrcode?: string });
-      setQrData(qr?.base64 || qr?.qrcode || null);
+      console.log('Resposta connect:', JSON.stringify(res));
+
+      // Tenta extrair o QR de diferentes estruturas de resposta da uZapi
+      const raw = res as Record<string, unknown>;
+      const qrcode =
+        (raw.qrcode as string) ||
+        (raw.qr as string) ||
+        ((raw.qr as Record<string, string>)?.base64) ||
+        ((raw.qr as Record<string, string>)?.qrcode) ||
+        ((raw.instance as Record<string, string>)?.qrcode) ||
+        (raw.base64 as string) ||
+        null;
+
+      setQrData(qrcode);
       await checkStatus();
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Erro ao conectar');
