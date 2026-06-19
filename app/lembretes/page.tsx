@@ -96,7 +96,7 @@ export default function LembretesPage() {
 
         <div className="page-content">
           {/* Dica sobre criação via WhatsApp */}
-          <div className="card mb-5" style={{ background: 'rgba(99,102,241,0.08)', border: '1px solid rgba(99,102,241,0.3)', padding: '14px 18px' }}>
+          <div className="card mb-5" style={{ background: '#dcfce7', padding: '14px 18px' }}>
             <div className="flex items-center gap-3">
               <span style={{ fontSize: 24 }}>📱</span>
               <div>
@@ -190,7 +190,7 @@ export default function LembretesPage() {
               O lembrete será enviado via WhatsApp para o número configurado no horário agendado.
             </p>
             {error && (
-              <div style={{ background: '#7f1d1d', border: '1px solid var(--red)', borderRadius: 8, padding: '10px 14px', color: 'var(--red)', marginBottom: 12, fontSize: 13 }}>
+              <div className="notice notice-error" style={{ marginBottom: 12 }}>
                 {error}
               </div>
             )}

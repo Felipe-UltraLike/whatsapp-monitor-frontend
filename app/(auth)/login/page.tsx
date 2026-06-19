@@ -100,7 +100,7 @@ export default function LoginPage() {
             )}
 
             {error && (
-              <div style={{ background: '#7f1d1d', border: '1px solid var(--red)', borderRadius: '8px', padding: '10px 14px', color: 'var(--red)', marginBottom: '16px', fontSize: '13px' }}>
+              <div style={{ background: 'var(--red)', border: '2.5px solid var(--border)', boxShadow: '2px 2px 0 0 var(--border)', padding: '10px 14px', color: '#fff', marginBottom: '16px', fontSize: '13px', fontWeight: 600 }}>
                 {error}
               </div>
             )}

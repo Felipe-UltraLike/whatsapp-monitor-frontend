@@ -205,7 +205,7 @@ export default function WhatsAppPage() {
               </div>
 
               {error && (
-                <div style={{ background: '#7f1d1d', border: '1px solid var(--red)', borderRadius: 8, padding: '10px 14px', color: 'var(--red)', marginBottom: 16, fontSize: 13 }}>{error}</div>
+                <div className="notice notice-error" style={{ marginBottom: 16 }}>{error}</div>
               )}
 
               {(isPending || qrData) && !isConnected && (
@@ -262,9 +262,9 @@ export default function WhatsAppPage() {
                     <button className="btn btn-ghost btn-sm" style={{ color: 'var(--red)' }} onClick={removeGroup}>✕</button>
                   </div>
                 ) : (
-                  <div style={{ background: 'rgba(99,102,241,0.08)', border: '1px solid rgba(99,102,241,0.3)', borderRadius: 10, padding: '14px 16px', marginBottom: 12 }}>
+                  <div className="notice notice-info" style={{ marginBottom: 12 }}>
                     <div className="text-sm mb-2">⚠️ Nenhum grupo configurado. Crie um grupo no WhatsApp e selecione abaixo.</div>
-                    <div className="text-xs text-muted">Dica: crie um grupo só com você mesmo e nomeie como "WA Monitor" ou similar.</div>
+                    <div className="text-xs" style={{ opacity: 0.8 }}>Dica: crie um grupo só com você mesmo e nomeie como "WA Monitor" ou similar.</div>
                   </div>
                 )}
 
@@ -328,17 +328,17 @@ export default function WhatsAppPage() {
                 <p className="text-sm text-muted mb-4">Necessário para receber mensagens em tempo real. Clique sempre que reconectar o WhatsApp.</p>
 
                 {!webhookConfigured && (
-                  <div style={{ background: '#713f12', border: '1px solid var(--yellow)', borderRadius: 8, padding: '10px 14px', marginBottom: 12, fontSize: 13 }}>
+                  <div className="notice notice-warn" style={{ marginBottom: 12 }}>
                     ⚠️ Configure <code>BACKEND_URL</code> no Render com a URL do backend antes de registrar.
                   </div>
                 )}
                 {webhookStatus === 'ok' && (
-                  <div style={{ background: 'rgba(34,197,94,0.1)', border: '1px solid var(--green)', borderRadius: 8, padding: '10px 14px', marginBottom: 12, fontSize: 13, color: 'var(--green)' }}>
+                  <div className="notice notice-success" style={{ marginBottom: 12 }}>
                     ✅ Webhook registrado com sucesso!
                   </div>
                 )}
                 {webhookStatus === 'error' && (
-                  <div style={{ background: '#7f1d1d', border: '1px solid var(--red)', borderRadius: 8, padding: '10px 14px', marginBottom: 12, fontSize: 13, color: 'var(--red)' }}>
+                  <div className="notice notice-error" style={{ marginBottom: 12 }}>
                     ❌ {webhookError || 'Erro ao registrar webhook.'}
                   </div>
                 )}

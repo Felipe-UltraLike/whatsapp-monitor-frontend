@@ -115,13 +115,13 @@ export default function MonitoramentoPage() {
 
               {/* Avisos */}
               {!whatsappConnected && (
-                <div style={{ background: '#713f12', border: '1px solid var(--yellow)', borderRadius: 10, padding: '14px 18px', marginBottom: 20, fontSize: 13 }}>
-                  ⚠️ <strong>WhatsApp desconectado.</strong> As mensagens não estão sendo monitoradas. Vá em <button style={{ color: 'var(--primary)', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600 }} onClick={() => router.push('/whatsapp')}>WhatsApp</button> para conectar.
+                <div className="notice notice-warn" style={{ marginBottom: 20 }}>
+                  ⚠️ <strong>WhatsApp desconectado.</strong> As mensagens não estão sendo monitoradas. Vá em <button style={{ color: 'var(--secondary)', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 800, textDecoration: 'underline' }} onClick={() => router.push('/whatsapp')}>WhatsApp</button> para conectar.
                 </div>
               )}
               {(monitoringStats?.total_monitored || 0) === 0 && (
-                <div style={{ background: 'rgba(99,102,241,0.1)', border: '1px solid var(--primary)', borderRadius: 10, padding: '14px 18px', marginBottom: 20, fontSize: 13 }}>
-                  💡 <strong>Nenhum grupo monitorado ainda.</strong> Vá em <button style={{ color: 'var(--primary)', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600 }} onClick={() => router.push('/clientes')}>Clientes</button> e vincule grupos do WhatsApp a cada cliente.
+                <div className="notice notice-info" style={{ marginBottom: 20 }}>
+                  💡 <strong>Nenhum grupo monitorado ainda.</strong> Vá em <button style={{ color: 'var(--secondary)', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 800, textDecoration: 'underline' }} onClick={() => router.push('/clientes')}>Clientes</button> e vincule grupos do WhatsApp a cada cliente.
                 </div>
               )}
 

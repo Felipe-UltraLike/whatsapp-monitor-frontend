@@ -97,9 +97,9 @@ ${spec.technical_notes || 'Nenhuma nota técnica adicional.'}
           <button className="btn btn-ghost btn-sm" onClick={loadData}>↻ Atualizar</button>
         </div>
 
-        <div style={{ display: 'flex', height: 'calc(100vh - 65px)', overflow: 'hidden' }}>
+        <div className="split-view" style={{ display: 'flex', height: 'calc(100vh - 65px)', overflow: 'hidden' }}>
           {/* Lista */}
-          <div style={{ width: 380, borderRight: '1px solid var(--border)', display: 'flex', flexDirection: 'column' }}>
+          <div className="split-list" style={{ width: 380, borderRight: '2.5px solid var(--border)', display: 'flex', flexDirection: 'column' }}>
             {/* Filtros */}
             <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: 8 }}>
               <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} style={{ fontSize: 13 }}>
@@ -167,7 +167,7 @@ ${spec.technical_notes || 'Nenhuma nota técnica adicional.'}
           </div>
 
           {/* Detalhe da spec */}
-          <div style={{ flex: 1, overflowY: 'auto', padding: 28 }}>
+          <div className="split-detail" style={{ flex: 1, overflowY: 'auto', padding: 28 }}>
             {!selected ? (
               <div className="empty-state">
                 <span style={{ fontSize: 48 }}>📋</span>

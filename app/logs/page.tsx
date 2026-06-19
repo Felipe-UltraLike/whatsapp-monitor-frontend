@@ -153,7 +153,7 @@ export default function LogsPage() {
                     </div>
                     {isOpen && hasData && (
                       <pre style={{
-                        marginTop: 8, padding: 10, background: 'var(--bg1)', borderRadius: 6,
+                        marginTop: 8, padding: 10, background: 'var(--bg3)', border: '2px solid var(--border)', borderRadius: 4,
                         fontSize: 11, overflow: 'auto', color: 'var(--text2)', whiteSpace: 'pre-wrap', wordBreak: 'break-all',
                       }}>
                         {JSON.stringify(log.data, null, 2)}

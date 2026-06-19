@@ -63,35 +63,35 @@ export default function DashboardPage() {
               {/* Cards de estatísticas */}
               <div className="grid-4 mb-6">
                 <div className="stat-card">
-                  <div className="stat-icon" style={{ background: '#3b0764' }}>🔔</div>
-                  <div className="stat-value" style={{ color: Number(stats?.open_alerts) > 0 ? 'var(--red)' : 'var(--green)' }}>
+                  <div className="stat-icon" style={{ background: 'var(--primary)' }}>🔔</div>
+                  <div className="stat-value" style={{ color: Number(stats?.open_alerts) > 0 ? 'var(--red)' : 'var(--primary)' }}>
                     {stats?.open_alerts || 0}
                   </div>
                   <div className="stat-label">Alertas abertos</div>
                 </div>
                 <div className="stat-card">
-                  <div className="stat-icon" style={{ background: '#7f1d1d' }}>🐛</div>
+                  <div className="stat-icon" style={{ background: 'var(--red)' }}>🐛</div>
                   <div className="stat-value">{stats?.open_bugs || 0}</div>
                   <div className="stat-label">Bugs relatados</div>
                 </div>
                 <div className="stat-card">
-                  <div className="stat-icon" style={{ background: '#1e3a5f' }}>💡</div>
+                  <div className="stat-icon" style={{ background: 'var(--orange)' }}>💡</div>
                   <div className="stat-value">{stats?.open_suggestions || 0}</div>
                   <div className="stat-label">Sugestões</div>
                 </div>
                 <div className="stat-card">
-                  <div className="stat-icon" style={{ background: '#14532d' }}>📋</div>
+                  <div className="stat-icon" style={{ background: 'var(--secondary)' }}>📋</div>
                   <div className="stat-value">{stats?.pending_specs || 0}</div>
                   <div className="stat-label">Specs pendentes</div>
                 </div>
               </div>
 
               {Number(stats?.critical_alerts) > 0 && (
-                <div style={{ background: '#7f1d1d', border: '1px solid var(--red)', borderRadius: 10, padding: '14px 18px', marginBottom: 20, display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div className="notice notice-error" style={{ marginBottom: 20, display: 'flex', alignItems: 'center', gap: 10 }}>
                   <span style={{ fontSize: 20 }}>🚨</span>
                   <div>
                     <strong>{stats?.critical_alerts} alerta(s) CRÍTICO(S)</strong>
-                    <span className="text-muted" style={{ marginLeft: 8 }}>Requer atenção imediata</span>
+                    <span style={{ marginLeft: 8, opacity: 0.8 }}>Requer atenção imediata</span>
                   </div>
                 </div>
               )}
@@ -143,7 +143,7 @@ export default function DashboardPage() {
                 </div>
               )}
 
-              <div style={{ marginTop: 24, display: 'flex', gap: 12 }}>
+              <div className="stack-mobile" style={{ marginTop: 24, display: 'flex', gap: 12 }}>
                 <div className="card" style={{ flex: 1 }}>
                   <div style={{ fontSize: 13, color: 'var(--text2)', marginBottom: 4 }}>Últimas 24h</div>
                   <div style={{ fontSize: 24, fontWeight: 700 }}>{stats?.last_24h || 0}</div>

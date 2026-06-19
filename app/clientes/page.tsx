@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation';
 import Sidebar from '@/components/Sidebar';
 import { api, Client, ClientSystem, Chat, MonitoredChat } from '@/lib/api';
 
-const COLORS = ['#6366f1', '#3B82F6', '#22c55e', '#eab308', '#f97316', '#ef4444', '#a855f7', '#ec4899'];
+const COLORS = ['#16a34a', '#14532d', '#f97316', '#3B82F6', '#eab308', '#ef4444', '#a855f7', '#ec4899'];
 
 export default function ClientesPage() {
   const router = useRouter();
@@ -19,7 +19,7 @@ export default function ClientesPage() {
   const [showSystemModal, setShowSystemModal] = useState(false);
   const [showChatsModal, setShowChatsModal] = useState(false);
   const [editingSystem, setEditingSystem] = useState<ClientSystem | null>(null);
-  const [clientForm, setClientForm] = useState({ name: '', description: '', color: '#6366f1' });
+  const [clientForm, setClientForm] = useState({ name: '', description: '', color: '#16a34a' });
   const [systemForm, setSystemForm] = useState({ name: '', description: '', tech_stack: '', repository_url: '', production_url: '' });
   const [saving, setSaving] = useState(false);
   const [togglingChat, setTogglingChat] = useState<string | null>(null);
@@ -58,7 +58,7 @@ export default function ClientesPage() {
       const c = await api.createClient(clientForm);
       setClients(prev => [...prev, c]);
       setShowClientModal(false);
-      setClientForm({ name: '', description: '', color: '#6366f1' });
+      setClientForm({ name: '', description: '', color: '#16a34a' });
       selectClient(c);
     } finally {
       setSaving(false);
@@ -164,9 +164,9 @@ export default function ClientesPage() {
           <button className="btn btn-primary" onClick={() => setShowClientModal(true)}>+ Novo cliente</button>
         </div>
 
-        <div style={{ display: 'flex', height: 'calc(100vh - 65px)', overflow: 'hidden' }}>
+        <div className="split-view" style={{ display: 'flex', height: 'calc(100vh - 65px)', overflow: 'hidden' }}>
           {/* Lista lateral de clientes */}
-          <div style={{ width: 260, borderRight: '1px solid var(--border)', padding: 16, overflowY: 'auto' }}>
+          <div className="split-list" style={{ width: 260, borderRight: '2.5px solid var(--border)', padding: 16, overflowY: 'auto' }}>
             <div className="text-xs text-muted font-semibold mb-3" style={{ textTransform: 'uppercase', letterSpacing: '0.08em' }}>Seus clientes</div>
             {loading ? <div className="spinner" /> : clients.length === 0 ? (
               <div className="empty-state" style={{ padding: '30px 0' }}>
@@ -203,7 +203,7 @@ export default function ClientesPage() {
           </div>
 
           {/* Detalhe do cliente */}
-          <div style={{ flex: 1, overflowY: 'auto', padding: 24 }}>
+          <div className="split-detail" style={{ flex: 1, overflowY: 'auto', padding: 24 }}>
             {!selected ? (
               <div className="empty-state">
                 <span style={{ fontSize: 48 }}>👈</span>
