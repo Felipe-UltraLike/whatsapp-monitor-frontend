@@ -101,7 +101,7 @@ export default function WhatsAppPage() {
     setGroupSearch('');
     try {
       const chats = await api.listChats();
-      setGroupChats(chats.filter(c => c.type === 'group'));
+      setGroupChats(chats);
     } finally {
       setLoadingGroups(false);
     }
@@ -395,31 +395,42 @@ export default function WhatsAppPage() {
               </div>
             ) : filteredGroups.length === 0 ? (
               <div className="empty-state" style={{ padding: 24 }}>
-                <span style={{ fontSize: 32 }}>👥</span>
-                <p className="text-sm">{groupChats.length === 0 ? 'Nenhum grupo encontrado. Crie um grupo no WhatsApp primeiro.' : 'Nenhum grupo com esse nome.'}</p>
+                <span style={{ fontSize: 32 }}>💬</span>
+                <p className="text-sm">{groupChats.length === 0 ? 'Nenhuma conversa encontrada. Certifique-se que o WhatsApp está conectado.' : 'Nenhuma conversa com esse nome.'}</p>
               </div>
             ) : (
-              <div style={{ maxHeight: 360, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 6 }}>
-                {filteredGroups.map(chat => {
-                  const isSelected = systemGroup?.id === chat.id;
+              <div style={{ maxHeight: 380, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 4 }}>
+                {(['group', 'individual'] as const).map(type => {
+                  const chats = filteredGroups.filter(c => c.type === type);
+                  if (chats.length === 0) return null;
                   return (
-                    <div
-                      key={chat.id}
-                      onClick={() => !savingGroup && selectGroup(chat)}
-                      style={{
-                        display: 'flex', alignItems: 'center', gap: 12,
-                        padding: '12px 14px', borderRadius: 8, cursor: 'pointer',
-                        background: isSelected ? 'rgba(34,197,94,0.08)' : 'var(--bg3)',
-                        border: `1px solid ${isSelected ? 'rgba(34,197,94,0.3)' : 'transparent'}`,
-                        opacity: savingGroup ? 0.6 : 1, transition: 'all 0.15s',
-                      }}
-                    >
-                      <span style={{ fontSize: 20 }}>👥</span>
-                      <div style={{ flex: 1 }}>
-                        <div className="font-semibold text-sm">{chat.name}</div>
-                        <div className="text-xs text-muted">Grupo do WhatsApp</div>
+                    <div key={type}>
+                      <div className="text-xs text-muted font-semibold mb-2 mt-3" style={{ textTransform: 'uppercase', letterSpacing: '0.06em', paddingLeft: 4 }}>
+                        {type === 'group' ? '👥 Grupos' : '👤 Conversas individuais'}
                       </div>
-                      {isSelected && <span className="badge badge-green" style={{ fontSize: 11 }}>● Atual</span>}
+                      {chats.map(chat => {
+                        const isSelected = systemGroup?.id === chat.id;
+                        return (
+                          <div
+                            key={chat.id}
+                            onClick={() => !savingGroup && selectGroup(chat)}
+                            style={{
+                              display: 'flex', alignItems: 'center', gap: 12,
+                              padding: '10px 12px', borderRadius: 8, cursor: 'pointer',
+                              background: isSelected ? 'rgba(34,197,94,0.08)' : 'var(--bg3)',
+                              border: `1px solid ${isSelected ? 'rgba(34,197,94,0.3)' : 'transparent'}`,
+                              marginBottom: 4, opacity: savingGroup ? 0.6 : 1, transition: 'all 0.15s',
+                            }}
+                          >
+                            <span style={{ fontSize: 18 }}>{type === 'group' ? '👥' : '👤'}</span>
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div className="font-semibold text-sm" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{chat.name}</div>
+                              <div className="text-xs text-muted">{type === 'group' ? 'Grupo' : 'Conversa individual'}</div>
+                            </div>
+                            {isSelected && <span className="badge badge-green" style={{ fontSize: 11 }}>● Atual</span>}
+                          </div>
+                        );
+                      })}
                     </div>
                   );
                 })}
